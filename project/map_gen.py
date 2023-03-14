@@ -14,6 +14,9 @@ class MapGenerator:
         self._map: list = []
         self.regenerate()
 
+    def set_size(self, size: int):
+        self._size = size
+
     def get_map(self) -> list:
         return self._map
 

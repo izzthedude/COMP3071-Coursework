@@ -17,12 +17,12 @@ class ControlPanel(QScrollArea):
     def _init_map_section(self):
         self._map_section = _Section("Map Generator Settings")
 
-        self._size_spin_button = QSpinBox()
-        self._size_spin_button.setRange(3, 11)
-        self._map_section.add_row("Size", self._size_spin_button)
+        self.size_spinbox = QSpinBox()
+        self.size_spinbox.setRange(3, 11)
+        self._map_section.add_row("Size", self.size_spinbox)
 
-        self._regenerate_button = QPushButton("Regenerate Map")
-        self._map_section.add_row("", self._regenerate_button)
+        self.regenerate_button = QPushButton("Regenerate")
+        self._map_section.add_row("", self.regenerate_button)
 
         self.layout().addWidget(self._map_section)
 
@@ -32,7 +32,7 @@ class _Section(QWidget):
         super().__init__(parent)
 
         layout = QVBoxLayout()
-        layout.setContentsMargins(0, 5, 0, 5)
+        layout.setContentsMargins(0, 5, 0, 15)
         self.setLayout(layout)
 
         self._title_label = QLabel(title)
@@ -40,7 +40,7 @@ class _Section(QWidget):
         layout.addWidget(self._title_label)
 
         self._rows_layout = QGridLayout()
-        self._rows_layout.setContentsMargins(10, 0, 10, 5)
+        self._rows_layout.setContentsMargins(10, 0, 10, 10)
         layout.addLayout(self._rows_layout)
 
     def set_title(self, title: str):
