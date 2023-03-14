@@ -1,27 +1,29 @@
+from PySide6.QtCore import *
 from PySide6.QtGui import *
 from PySide6.QtWidgets import *
-from PySide6.QtCore import *
 
-from project.ui.view_panel import ControlPanel
-from project.ui.view_canvas import CanvasView
+from project.view_canvas import CanvasView
+from project.view_panel import ControlPanel
 
 
 class MainWindow(QMainWindow):
     def __init__(self, parent: QObject = None):
         super().__init__(parent)
         self._setup_actions()
+        self._setup_layout()
         self.setWindowTitle("Navigator")
-
-        self.content_box_layout = QHBoxLayout()
-        self.content_box_layout.setContentsMargins(0, 0, 0, 0)
-        self.content_box = QWidget(self)
-        self.content_box.setLayout(self.content_box_layout)
-        self.setCentralWidget(self.content_box)
 
         self.panel = ControlPanel()
         self.canvas = CanvasView()
-        self.content_box_layout.addWidget(self.panel)
-        self.content_box_layout.addWidget(self.canvas)
+        self._content_box_layout.addWidget(self.panel)
+        self._content_box_layout.addWidget(self.canvas)
+
+    def _setup_layout(self):
+        self._content_box_layout = QHBoxLayout()
+        self._content_box_layout.setContentsMargins(0, 0, 0, 0)
+        self._content_box = QWidget(self)
+        self._content_box.setLayout(self._content_box_layout)
+        self.setCentralWidget(self._content_box)
 
     def _setup_actions(self):
         self.quit_shortcut = QShortcut(QKeySequence("Ctrl+Q"), self)

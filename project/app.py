@@ -1,7 +1,7 @@
-from PySide6.QtGui import *
 from PySide6.QtWidgets import *
 
-from project.ui.window_main import MainWindow
+from project.window_main import MainWindow
+from project.controller_app import AppController
 
 
 class App(QApplication):
@@ -11,6 +11,8 @@ class App(QApplication):
 
         self.main_window = MainWindow()
         self.main_window.quit_shortcut.activated.connect(self._on_quit_shortcut)
+
+        self.app_controller = AppController(self.main_window)
 
         self.main_window.show()
 
