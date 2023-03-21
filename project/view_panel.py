@@ -12,9 +12,6 @@ class ControlPanel(QScrollArea):
         layout.setAlignment(Qt.AlignTop)
         self.setLayout(layout)
 
-        self._init_map_section()
-
-    def _init_map_section(self):
         self._map_section = _Section("Map Generator Settings")
 
         self.size_spinbox = QSpinBox()
