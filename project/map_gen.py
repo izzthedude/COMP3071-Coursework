@@ -1,6 +1,8 @@
 import random
 from enum import Enum
 
+from project.enums import Sizes
+
 
 class Direction(Enum):
     LEFT = "L"
@@ -21,11 +23,44 @@ class Direction(Enum):
 
 
 class MapTile:
-    def __init__(self, x: int, y: int, from_direction: Direction, to_direction: Direction):
-        self.x = x
-        self.y = y
+    def __init__(self, size: int, x: int, y: int, from_direction: Direction, to_direction: Direction):
+        self.size = size
+        self.x = x * size
+        self.y = y * size
         self.from_direction = from_direction
         self.to_direction = to_direction
+
+        self.borders: list[tuple[int, int] | None] = []
+
+    def top_border(self):
+        return self.borders[0]
+
+    def bottom_border(self):
+        return self.borders[1]
+
+    def left_border(self):
+        return self.borders[2]
+
+    def right_border(self):
+        return self.borders[3]
+
+    def _calculate_borders(self):
+        top = self._calculate_border((self.x, self.y), (self.x + self.size, self.y), Direction.UP)
+        self.borders.append(top)
+        bottom = self._calculate_border((self.x, self.y + self.size), (self.x + self.size, self.y + self.size),
+                                        Direction.DOWN)
+        self.borders.append(bottom)
+        left = self._calculate_border((self.x, self.y), (self.x, self.y + self.size), Direction.LEFT)
+        self.borders.append(left)
+        right = self._calculate_border((self.x + self.size, self.y), (self.x + self.size, self.y + self.size),
+                                       Direction.RIGHT)
+        self.borders.append(right)
+
+    def _calculate_border(self, start: tuple[int, int], end: tuple[int, int], direction: Direction):
+        border = start, end
+        if self.from_direction == direction or self.to_direction == direction:
+            border = None
+        return border
 
     def __eq__(self, other):
         return self.x == other.x and \
@@ -74,15 +109,16 @@ class MapGenerator:
                 direction_choices.remove(Direction.LEFT)
             to_direction = random.choice(direction_choices)
 
-            tile = MapTile(x, y, from_direction.opposite(), to_direction)
+            size = Sizes.CANVAS_SIZE // self._size
+            tile = MapTile(size, x, y, from_direction.opposite(), to_direction)
             new_arr[y][x] = tile
             self._tiles.append(tile)
 
             new_x, new_y = self._new_directions(to_direction, x, y)
             if to_direction != Direction.DOWN and self._within_ranges(new_x, new_y + 1) and new_arr[y - 1][new_x]:
                 new_y += 1
-                new_arr[y][x] = MapTile(x, y, Direction.UP, Direction.DOWN)
-                new_arr[new_y][x] = MapTile(x, new_y, Direction.UP, to_direction)
+                new_arr[y][x] = MapTile(size, x, y, Direction.UP, Direction.DOWN)
+                new_arr[new_y][x] = MapTile(size, x, new_y, Direction.UP, to_direction)
                 self._tiles.remove(self._tiles[-1])
                 self._tiles.append(new_arr[y][x])
                 self._tiles.append(new_arr[new_y][x])
@@ -92,6 +128,8 @@ class MapGenerator:
             y = new_y
 
         self._tiles[-1].to_direction = self._tiles[-1].from_direction.opposite()
+        for tile in self._tiles:
+            tile._calculate_borders()
         return new_arr
 
     def _new_directions(self, new: Direction, x: int, y: int) -> tuple[int, int]:
@@ -107,7 +145,8 @@ class MapGenerator:
         return new_x, new_y
 
     def _new_map(self):
-        first = MapTile(self._size // 2, 0, Direction.UP, Direction.DOWN)
+        size = Sizes.CANVAS_SIZE // self._size
+        first = MapTile(size, self._size // 2, 0, Direction.UP, Direction.DOWN)
         array = [[0 for _ in range(self._size)] for __ in range(self._size)]
         array[0][self._size // 2] = first
         self._tiles = []

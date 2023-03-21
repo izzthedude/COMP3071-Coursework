@@ -2,6 +2,7 @@ from PySide6.QtCore import *
 from PySide6.QtGui import *
 from PySide6.QtWidgets import *
 
+from project.enums import Sizes
 from project.map_gen import MapTile, Direction, MapGenerator
 
 
@@ -17,17 +18,27 @@ class _StyleableQWidget(QWidget):
 
 
 class CanvasView(_StyleableQWidget):
-    def __init__(self, parent: QObject = None):
+    def __init__(self, mapgen: MapGenerator, parent: QObject = None):
         super().__init__(parent)
 
-        self.setFixedSize(1000, 1000)
-        self._tiles: list[MapTile] = []
-        self._tile_widgets: list[TileWidget] = []
+        self.setFixedSize(Sizes.CANVAS_SIZE, Sizes.CANVAS_SIZE)
+        self._tiles: list[MapTile] = mapgen.get_tiles()
 
-    def set_mapgen(self, mapgen: MapGenerator):
-        self._tiles = mapgen.get_tiles()
-        size = self.width() // mapgen.get_size()
-        self._tile_widgets = [TileWidget(tile, self, size) for tile in self._tiles]
+    def paintEvent(self, event):
+        p = QPainter(self)
+        p.pen().setWidth(5)
+        for tile in self._tiles:
+            for border in tile.borders:
+                if border is not None:
+                    start, end = border
+                    x_start, y_start = start
+                    x_end, y_end = end
+                    p.drawLine(
+                        x_start,
+                        y_start,
+                        x_end,
+                        y_end
+                    )
 
 
 class TileWidget(_StyleableQWidget):

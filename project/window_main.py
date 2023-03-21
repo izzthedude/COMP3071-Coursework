@@ -2,7 +2,6 @@ from PySide6.QtCore import *
 from PySide6.QtGui import *
 from PySide6.QtWidgets import *
 
-from project.view_canvas import CanvasView
 from project.view_panel import ControlPanel
 
 
@@ -14,9 +13,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Navigator")
 
         self.panel = ControlPanel()
-        self.canvas = CanvasView()
         self._content_box_layout.addWidget(self.panel)
-        self._content_box_layout.addWidget(self.canvas)
 
     def _setup_layout(self):
         self._content_box_layout = QHBoxLayout()
