@@ -16,6 +16,7 @@ class AppController(QObject):
         size = 7
         self._generator = MapGenerator(size)
         self._panel.size_spinbox.setValue(size)
+        self._canvas.set_mapgen(self._generator)
 
         self._panel.size_spinbox.valueChanged.connect(self._on_size_changed)
         self._panel.regenerate_button.clicked.connect(self._on_regenerate)
@@ -24,4 +25,11 @@ class AppController(QObject):
         self._generator.set_size(value)
 
     def _on_regenerate(self):
+        self._window.centralWidget().layout().removeWidget(self._canvas)
+        self._canvas.deleteLater()
+        del self._canvas
+
         self._generator.regenerate()
+        self._canvas = CanvasView()
+        self._canvas.set_mapgen(self._generator)
+        self._window.centralWidget().layout().addWidget(self._canvas)

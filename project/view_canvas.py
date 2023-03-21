@@ -2,16 +2,84 @@ from PySide6.QtCore import *
 from PySide6.QtGui import *
 from PySide6.QtWidgets import *
 
+from project.map_gen import MapTile, Direction, MapGenerator
 
-class CanvasView(QWidget):
+
+class _StyleableQWidget(QWidget):
     def __init__(self, parent: QObject = None):
         super().__init__(parent)
 
-        self.setFixedSize(1000, 1000)
-        self.setStyleSheet("CanvasView {background-color: red;}")
-
-    def paintEvent(self, event: QPaintEvent):
+    def paintEvent(self, event):
         opt = QStyleOption()
         opt.initFrom(self)
         painter = QPainter(self)
         self.style().drawPrimitive(QStyle.PrimitiveElement.PE_Widget, opt, painter, self)
+
+
+class CanvasView(_StyleableQWidget):
+    def __init__(self, parent: QObject = None):
+        super().__init__(parent)
+
+        self.setFixedSize(1000, 1000)
+        self._tiles: list[MapTile] = []
+        self._tile_widgets: list[TileWidget] = []
+
+    def set_mapgen(self, mapgen: MapGenerator):
+        self._tiles = mapgen.get_tiles()
+        size = self.width() // mapgen.get_size()
+        self._tile_widgets = [TileWidget(tile, self, size) for tile in self._tiles]
+
+
+class TileWidget(_StyleableQWidget):
+    def __init__(self, tile: MapTile, canvas: CanvasView, size: float, parent: QObject = None):
+        super().__init__(canvas)
+        self.setFixedSize(size, size)
+        self.move(tile.x * size, tile.y * size)
+
+        self._top_border = HBorderWidget(self)
+        self._bottom_border = HBorderWidget(self)
+        self._left_border = VBorderWidget(self)
+        self._right_border = VBorderWidget(self)
+        self._init_borders()
+
+        self._hide_border(tile.from_direction)
+        self._hide_border(tile.to_direction)
+
+    def _init_borders(self):
+        self._top_border.move(0, 0)
+        self._bottom_border.move(0, self.height() - self._bottom_border.height())
+        self._left_border.move(0, 0)
+        self._right_border.move(self.width() - self._right_border.width(), 0)
+
+    def _hide_border(self, direction: Direction):
+        match direction:
+            case Direction.UP:
+                self._top_border.hide()
+            case Direction.LEFT:
+                self._left_border.hide()
+            case Direction.RIGHT:
+                self._right_border.hide()
+            case Direction.DOWN:
+                self._bottom_border.hide()
+
+
+class _BorderWidget(_StyleableQWidget):
+    def __init__(self, parent: QWidget):
+        super().__init__(parent)
+        self.setStyleSheet("background-color: black;")
+
+
+class VBorderWidget(_BorderWidget):
+    def __init__(self, parent: QWidget):
+        super().__init__(parent)
+
+        self.setFixedWidth(5)
+        self.setFixedHeight(parent.height())
+
+
+class HBorderWidget(_BorderWidget):
+    def __init__(self, parent: QWidget):
+        super().__init__(parent)
+
+        self.setFixedWidth(parent.width())
+        self.setFixedHeight(5)

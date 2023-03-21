@@ -40,26 +40,25 @@ class MapTile:
 class MapGenerator:
     def __init__(self, size: int = 11):
         self._size: int = size
-        self._map: list = []
-        self._last_tile: MapTile
+        self._map: list[int | MapTile] = []
+        self._tiles: list[MapTile] = []
         self.regenerate()
 
     def set_size(self, size: int):
         self._size = size
 
+    def get_size(self) -> int:
+        return self._size
+
     def get_map(self) -> list:
         return self._map
 
     def get_tiles(self) -> list[MapTile]:
-        tiles = [item for row in self._map for item in row if isinstance(item, MapTile)]
-        return tiles
+        return self._tiles
 
     def regenerate(self) -> list:
         self._map = self._generate_map(self._new_map())
         return self._map
-
-    def is_last_tile(self, tile: MapTile):
-        return tile == self._last_tile
 
     def _generate_map(self, array: list):
         new_arr = array[0:]
@@ -76,20 +75,23 @@ class MapGenerator:
             to_direction = random.choice(direction_choices)
 
             tile = MapTile(x, y, from_direction.opposite(), to_direction)
-            self._last_tile = tile
             new_arr[y][x] = tile
+            self._tiles.append(tile)
 
             new_x, new_y = self._new_directions(to_direction, x, y)
             if to_direction != Direction.DOWN and self._within_ranges(new_x, new_y + 1) and new_arr[y - 1][new_x]:
                 new_y += 1
                 new_arr[y][x] = MapTile(x, y, Direction.UP, Direction.DOWN)
                 new_arr[new_y][x] = MapTile(x, new_y, Direction.UP, to_direction)
+                self._tiles.remove(self._tiles[-1])
+                self._tiles.append(new_arr[y][x])
+                self._tiles.append(new_arr[new_y][x])
 
             from_direction = to_direction
             x = new_x
             y = new_y
 
-        self._last_tile.to_direction = self._last_tile.from_direction.opposite()
+        self._tiles[-1].to_direction = self._tiles[-1].from_direction.opposite()
         return new_arr
 
     def _new_directions(self, new: Direction, x: int, y: int) -> tuple[int, int]:
@@ -105,8 +107,11 @@ class MapGenerator:
         return new_x, new_y
 
     def _new_map(self):
+        first = MapTile(self._size // 2, 0, Direction.UP, Direction.DOWN)
         array = [[0 for _ in range(self._size)] for __ in range(self._size)]
-        array[0][self._size // 2] = MapTile(0, self._size // 2, Direction.UP, Direction.DOWN)
+        array[0][self._size // 2] = first
+        self._tiles = []
+        self._tiles.append(first)
         return array
 
     def _any_ends(self, array: list) -> bool:
