@@ -1,6 +1,6 @@
 from PySide6.QtCore import *
 
-from project.enums import Sizes
+from project.enums import *
 from project.map_gen import MapGenerator
 from project.models import Vehicle
 from project.view_canvas import CanvasView
@@ -27,7 +27,7 @@ class AppController(QObject):
 
         self._timer: QTimer = QTimer(self)
         self._timer.timeout.connect(self._tick)
-        self._timer.start(25)
+        self._timer.start(TICK_MS)
 
     def _tick(self):
         self._vehicle.move()
@@ -44,7 +44,7 @@ class AppController(QObject):
     def _calculate_vehicle_start(self):
         first_tile = self._generator.get_tiles()[0]
         x = first_tile.x + (first_tile.size / 2)
-        y = 0 + (Sizes.VEHICLE_SIZE / 2)
+        y = 0 + (VEHICLE_SIZE / 2)
         return x, y
 
     def _on_size_changed(self, value: int):

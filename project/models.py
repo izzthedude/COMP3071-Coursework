@@ -1,104 +1,50 @@
-from PySide6.QtGui import *
-from PySide6.QtCore import *
+import math
 
-from project.enums import Sizes
-from project.map_gen import MapTile
+from project.enums import *
 
 
 class Wheel:
-    def __init__(self, x_offset: int, y_offset: int):
-        self.width = Sizes.VEHICLE_SIZE / 4
-        self.height = self.width * 1.5
-        self.x_offset = x_offset + (self.width / 2)
-        self.y_offset = y_offset + (self.height / 2)
+    def __init__(self, x_offset: float, y_offset: float):
+        self.width = VEHICLE_SIZE / 2
+        self.height = self.width / 3
+        self.x_offset = x_offset - self.width / 2
+        self.y_offset = y_offset - self.height / 2
         self.speed: float = 0.0
 
 
 class Sensor:
-    def __init__(self, x_offset: int, y_offset: int, sense_angle: int):
-        self.radius = Sizes.VEHICLE_SIZE / 6
-        self.x_offset = x_offset + (self.radius / 2)
-        self.y_offset = y_offset + (self.radius / 2)
+    def __init__(self, x_offset: float, y_offset: float, sense_angle: float):
+        self.radius = VEHICLE_SIZE / 6
+        self.x_offset = x_offset - (self.radius / 2)
+        self.y_offset = y_offset - (self.radius / 2)
         self.angle_offset = sense_angle
 
 
 class Vehicle:
-    def __init__(self, x: int, y: int):
-        self.x = x  # x and y are the CENTER point of the vehicle
-        self.y = y
-        self.width = Sizes.VEHICLE_SIZE
-        self.height = Sizes.VEHICLE_SIZE
-        self.angle = 180
-        self.speed = 5
+    def __init__(self, x: float, y: float):
+        self.x: float = x  # x and y are the CENTER point of the vehicle
+        self.y: float = y
+        self.width: float = VEHICLE_SIZE
+        self.height: float = VEHICLE_SIZE
+        self.theta: float = math.radians(90)
+        self.max_speed: float = 5
 
-        self.wheel_left = Wheel(self.width / 2, 0)
-        self.wheel_right = Wheel(-self.width / 2, 0)
-        self.sensor_left = Sensor(self.width / 3, self.height / 2, -40)
-        self.sensor_right = Sensor(-self.width / 3, self.height / 2, 40)
+        self.wheels: list[Wheel] = [
+            Wheel(self.width / 2, 0),
+            Wheel(self.width / 2, self.height)
+        ]
+        self.wheels[0].speed = 2
+        self.wheels[1].speed = -2
 
-    def draw(self, painter: QPainter):
-        painter.translate(self.x, self.y)
-        painter.rotate(self.angle)
-
-        # Draw main body
-        painter.fillRect(
-            0 - (self.width / 2),
-            0 - (self.height / 2),
-            self.width,
-            self.height,
-            "blue"
-        )
-
-        # Draw wheels
-        self._draw_wheel(self.wheel_left, painter)
-        self._draw_wheel(self.wheel_right, painter)
-
-        # Draw sensors
-        brush = QBrush()
-        brush.setColor("yellow")
-        brush.setStyle(Qt.BrushStyle.SolidPattern)
-        painter.setBrush(brush)
-        self._draw_sensor(self.sensor_left, painter)
-        self._draw_sensor(self.sensor_right, painter)
+        angle_offset = 45
+        self.sensors: list[Sensor] = [
+            Sensor(self.width, self.height * 0.25, -angle_offset),
+            Sensor(self.width, self.height * 0.5, 0),
+            Sensor(self.width, self.height * 0.75, angle_offset)
+        ]
 
     def move(self):
-        self.y += 1
-
-    def sense_tile_borders(self, tile: MapTile):
-        pass
-
-    def set_position(self, x: int, y: int):
-        self.x = x
-        self.y = y
-
-    def contains(self, x: int, y: int):
-        start_x = self.x - (self.width / 2)
-        start_y = self.y - (self.height / 2)
-        return start_x < x < (start_x + self.width) and start_y < y < (start_y + self.height)
-
-    def _draw_wheel(self, wheel: Wheel, painter: QPainter):
-        painter.fillRect(
-            0 - wheel.x_offset,
-            0 - wheel.y_offset,
-            wheel.width,
-            wheel.height,
-            "black"
-        )
-
-    def _draw_sensor(self, sensor: Sensor, painter: QPainter):
-        x = 0 - sensor.x_offset
-        y = 0 - sensor.y_offset
-        painter.drawEllipse(
-            x,
-            y,
-            sensor.radius,
-            sensor.radius
-        )
-
-        painter.setPen("red")
-        line = QLineF()
-        line.setP1(QPointF(x+4, y))
-        line.setAngle(90 - sensor.angle_offset)
-        line.setLength(200)
-        painter.drawLine(line)
-        painter.setPen("black")
+        self.x += ((self.wheels[0].speed + self.wheels[1].speed) / 2) * math.cos(self.theta)
+        self.y += ((self.wheels[0].speed + self.wheels[1].speed) / 2) * math.sin(self.theta)
+        self.theta += (self.wheels[0].speed - self.wheels[1].speed) / (self.width * 1)
+        self.theta %= 2 * math.pi

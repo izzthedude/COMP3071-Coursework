@@ -1,7 +1,7 @@
 import random
 from enum import Enum
 
-from project.enums import Sizes
+from project.enums import *
 
 
 class Direction(Enum):
@@ -109,7 +109,7 @@ class MapGenerator:
                 direction_choices.remove(Direction.LEFT)
             to_direction = random.choice(direction_choices)
 
-            size = Sizes.CANVAS_SIZE // self._size
+            size = CANVAS_SIZE // self._size
             tile = MapTile(size, x, y, from_direction.opposite(), to_direction)
             new_arr[y][x] = tile
             self._tiles.append(tile)
@@ -145,7 +145,7 @@ class MapGenerator:
         return new_x, new_y
 
     def _new_map(self):
-        size = Sizes.CANVAS_SIZE // self._size
+        size = CANVAS_SIZE // self._size
         first = MapTile(size, self._size // 2, 0, Direction.UP, Direction.DOWN)
         array = [[0 for _ in range(self._size)] for __ in range(self._size)]
         array[0][self._size // 2] = first
