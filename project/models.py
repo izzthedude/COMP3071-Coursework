@@ -17,7 +17,17 @@ class Sensor:
         self.x = x
         self.y = y
         self.radius = radius
-        self.sense_angle = sense_angle
+        self.sense_length = 200
+        self.sense_angle = sense_angle  # In RADIANS
+
+    def line_start(self):
+        return self.x, self.y
+
+    def line_end(self, angle_offset: float = 0):
+        cum_angle = self.sense_angle + angle_offset
+        end_x = self.sense_length * math.cos(cum_angle) + self.x
+        end_y = self.sense_length * math.sin(cum_angle) + self.y
+        return end_x, end_y
 
 
 class Vehicle:
@@ -41,7 +51,7 @@ class Vehicle:
         # Sensors
         sensor_x = self.x + self.width / 2
         sensor_radius = VEHICLE_SIZE / 6
-        sense_angle = 45
+        sense_angle = math.radians(45)
         self.sensors: list[Sensor] = [
             Sensor(sensor_x, (self.y + (self.height / 2)) * 0.25, sensor_radius, -sense_angle),
             Sensor(sensor_x, (self.y + (self.height / 2)) * 0.50, sensor_radius, 0),

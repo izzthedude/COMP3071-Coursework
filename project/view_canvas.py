@@ -83,8 +83,8 @@ class CanvasView(QWidget):
         painter.setPen("red")
         line = QLineF()
         line.setP1(QPointF(x + 4, y + 4))
-        line.setAngle(-sensor.sense_angle)
-        line.setLength(200)
+        line.setAngle(-math.degrees(sensor.sense_angle))
+        line.setLength(sensor.sense_length)
         painter.drawLine(line)
 
         # Draw sensor
