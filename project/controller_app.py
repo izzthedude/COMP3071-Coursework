@@ -27,7 +27,8 @@ class AppController(QObject):
 
         self._timer: QTimer = QTimer(self)
         self._timer.timeout.connect(self._tick)
-        self._timer.start(TICK_MS)
+        self._is_running: bool = False
+        self._window.space_shortcut.activated.connect(self._on_startstop)
 
     def _tick(self):
         self._vehicle.move()
@@ -46,6 +47,13 @@ class AppController(QObject):
         x = first_tile.x + (first_tile.size / 2)
         y = 0 + (VEHICLE_SIZE / 2)
         return x, y
+
+    def _on_startstop(self):
+        if self._is_running:
+            self._timer.stop()
+        else:
+            self._timer.start(TICK_MS)
+        self._is_running = not self._is_running
 
     def _on_size_changed(self, value: int):
         self._generator.set_size(value)

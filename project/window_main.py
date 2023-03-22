@@ -25,6 +25,8 @@ class MainWindow(QMainWindow):
     def _setup_actions(self):
         self.quit_shortcut = QShortcut(QKeySequence("Ctrl+Q"), self)
         self.close_shortcut = QShortcut(QKeySequence("Ctrl+W"), self)
+        self.space_shortcut = QShortcut(QKeySequence("Space"), self)
+
         self.close_shortcut.activated.connect(self._on_close_shortcut)
 
     def _on_close_shortcut(self):
