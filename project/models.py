@@ -29,6 +29,34 @@ class Sensor:
         end_y = self.sense_length * math.sin(cum_angle) + self.y
         return end_x, end_y
 
+    def intersects(self, line: tuple[tuple[int, int], tuple[int, int]], angle_offset: float = 0):
+        sensor_line = (self.line_start(), self.line_end(angle_offset))
+
+        # Code taken from https://stackoverflow.com/a/20677983
+        ydiff = (sensor_line[0][1] - sensor_line[1][1], line[0][1] - line[1][1])
+        xdiff = (sensor_line[0][0] - sensor_line[1][0], line[0][0] - line[1][0])
+
+        def det(a, b):
+            return a[0] * b[1] - a[1] * b[0]
+
+        div = det(xdiff, ydiff)
+        if div == 0:
+            return
+
+        d = (det(*sensor_line), det(*line))
+        x = det(d, xdiff) / div
+        y = det(d, ydiff) / div
+
+        sensor_xs = [p[0] for p in sensor_line]
+        sensor_ys = [p[1] for p in sensor_line]
+        line_xs = [p[0] for p in line]
+        line_ys = [p[1] for p in line]
+
+        if min(sensor_xs) <= x <= max(sensor_xs) and min(sensor_ys) <= y <= max(sensor_ys) and \
+                min(line_xs) <= x <= max(line_xs) and min(line_ys) <= y <= max(line_ys):
+            print(f"({x, y}) : {sensor_xs} | {sensor_ys} | {line_xs} | {line_ys}")
+            return x, y
+
 
 class Vehicle:
     def __init__(self, x: float, y: float):

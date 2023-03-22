@@ -30,7 +30,7 @@ class MapTile:
         self.from_direction = from_direction
         self.to_direction = to_direction
 
-        self.borders: list[tuple[int, int] | None] = []
+        self.borders: list[tuple[tuple[int, int], tuple[int, int]] | None] = []
 
     def top_border(self):
         return self.borders[0]

@@ -32,6 +32,10 @@ class AppController(QObject):
 
     def _tick(self):
         self._vehicle.move()
+
+        for i, sensor in enumerate(self._vehicle.sensors):
+            print(f"Sensor{i}: {sensor.line_start(), sensor.line_end(self._vehicle.theta)}")
+
         self._recreate_canvas()
 
     def _recreate_canvas(self):
