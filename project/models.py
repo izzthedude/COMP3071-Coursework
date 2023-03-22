@@ -4,20 +4,20 @@ from project.enums import *
 
 
 class Wheel:
-    def __init__(self, x_offset: float, y_offset: float):
-        self.width = VEHICLE_SIZE / 2
+    def __init__(self, x: float, y: float, width: float):
+        self.x = x
+        self.y = y
+        self.width = width
         self.height = self.width / 3
-        self.x_offset = x_offset - self.width / 2
-        self.y_offset = y_offset - self.height / 2
         self.speed: float = 0.0
 
 
 class Sensor:
-    def __init__(self, x_offset: float, y_offset: float, sense_angle: float):
-        self.radius = VEHICLE_SIZE / 6
-        self.x_offset = x_offset - (self.radius / 2)
-        self.y_offset = y_offset - (self.radius / 2)
-        self.angle_offset = sense_angle
+    def __init__(self, x: float, y: float, radius: float, sense_angle: float):
+        self.x = x
+        self.y = y
+        self.radius = radius
+        self.sense_angle = sense_angle
 
 
 class Vehicle:
@@ -26,25 +26,46 @@ class Vehicle:
         self.y: float = y
         self.width: float = VEHICLE_SIZE
         self.height: float = VEHICLE_SIZE
-        self.theta: float = math.radians(90)
+        self.theta: float = math.radians(90)  # theta is in RADIANS, but I converted it from degrees for readability
         self.max_speed: float = 5
 
+        # Wheels
+        wheel_width = VEHICLE_SIZE / 2
         self.wheels: list[Wheel] = [
-            Wheel(self.width / 2, 0),
-            Wheel(self.width / 2, self.height)
+            Wheel(self.x, self.y - self.height / 2, wheel_width),
+            Wheel(self.x, self.y + self.height / 2, wheel_width)
         ]
         self.wheels[0].speed = 2
-        self.wheels[1].speed = -2
+        self.wheels[1].speed = 2
 
-        angle_offset = 45
+        # Sensors
+        sensor_x = self.x + self.width / 2
+        sensor_radius = VEHICLE_SIZE / 6
+        sense_angle = 45
         self.sensors: list[Sensor] = [
-            Sensor(self.width, self.height * 0.25, -angle_offset),
-            Sensor(self.width, self.height * 0.5, 0),
-            Sensor(self.width, self.height * 0.75, angle_offset)
+            Sensor(sensor_x, (self.y + (self.height / 2)) * 0.25, sensor_radius, -sense_angle),
+            Sensor(sensor_x, (self.y + (self.height / 2)) * 0.50, sensor_radius, 0),
+            Sensor(sensor_x, (self.y + (self.height / 2)) * 0.75, sensor_radius, sense_angle)
         ]
 
     def move(self):
-        self.x += ((self.wheels[0].speed + self.wheels[1].speed) / 2) * math.cos(self.theta)
-        self.y += ((self.wheels[0].speed + self.wheels[1].speed) / 2) * math.sin(self.theta)
-        self.theta += (self.wheels[0].speed - self.wheels[1].speed) / (self.width * 1)
+        # Referenced and modified from https://www.youtube.com/watch?v=zHboXMY45YU
+        dx = ((self.wheels[0].speed + self.wheels[1].speed) / 2) * math.cos(self.theta)
+        dy = ((self.wheels[0].speed + self.wheels[1].speed) / 2) * math.sin(self.theta)
+        dtheta = (self.wheels[0].speed - self.wheels[1].speed) / (self.width * 1)
+
+        # Move car
+        self.x += dx
+        self.y += dy
+        self.theta += dtheta
         self.theta %= 2 * math.pi
+
+        # Move wheels
+        for wheel in self.wheels:
+            wheel.x += dx
+            wheel.y += dy
+
+        # Move sensors
+        for sensor in self.sensors:
+            sensor.x += dx
+            sensor.y += dy

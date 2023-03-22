@@ -39,6 +39,9 @@ class CanvasView(QWidget):
                     )
 
     def _draw_vehicle(self, painter: QPainter):
+        # Since the painter is translated to the center of the vehicle,
+        # we need to account for that when drawing the other parts of the vehicle as well.
+        # Hence, why you'll see `part.x - self._vehicle.x` when drawing the vehicle parts.
         painter.translate(self._vehicle.x, self._vehicle.y)
         painter.rotate(math.degrees(self._vehicle.theta))
 
@@ -65,22 +68,22 @@ class CanvasView(QWidget):
 
     def _draw_wheel(self, wheel: Wheel, painter: QPainter):
         painter.fillRect(
-            0 - wheel.x_offset,
-            0 - (self._vehicle.height / 2) + wheel.y_offset,
+            wheel.x - self._vehicle.x - wheel.width / 2,
+            wheel.y - self._vehicle.y - wheel.height / 2,
             wheel.width,
             wheel.height,
             "black"
         )
 
     def _draw_sensor(self, sensor: Sensor, painter: QPainter):
-        x = sensor.x_offset - self._vehicle.width / 2
-        y = sensor.y_offset - self._vehicle.height / 2
+        x = sensor.x - self._vehicle.x - sensor.radius / 2
+        y = sensor.y - self._vehicle.y - sensor.radius / 2
 
         # Draw sensor lines
         painter.setPen("red")
         line = QLineF()
         line.setP1(QPointF(x + 4, y + 4))
-        line.setAngle(-sensor.angle_offset)
+        line.setAngle(-sensor.sense_angle)
         line.setLength(200)
         painter.drawLine(line)
 
