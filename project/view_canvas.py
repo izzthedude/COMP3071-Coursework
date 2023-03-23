@@ -39,13 +39,9 @@ class CanvasView(QWidget):
                     )
 
     def _draw_vehicle(self, painter: QPainter):
-        # Since the painter is translated to the center of the vehicle,
-        # we need to account for that when drawing the other parts of the vehicle as well.
-        # Hence, why you'll see `part.x - self._vehicle.x` when drawing the vehicle parts.
+        # Draw main body
         painter.translate(self._vehicle.x, self._vehicle.y)
         painter.rotate(math.degrees(self._vehicle.theta))
-
-        # Draw main body
         painter.fillRect(
             0 - self._vehicle.width / 2,
             0 - self._vehicle.height / 2,
@@ -53,10 +49,12 @@ class CanvasView(QWidget):
             self._vehicle.height,
             "blue"
         )
+        painter.resetTransform()
 
         # Draw wheels
         for wheel in self._vehicle.wheels:
             self._draw_wheel(wheel, painter)
+            painter.resetTransform()
 
         # Draw sensors
         brush = QBrush()
@@ -65,33 +63,32 @@ class CanvasView(QWidget):
         painter.setBrush(brush)
         for sensor in self._vehicle.sensors:
             self._draw_sensor(sensor, painter)
+            painter.resetTransform()
 
     def _draw_wheel(self, wheel: Wheel, painter: QPainter):
+        painter.translate(wheel.x, wheel.y)
+        painter.rotate(math.degrees(self._vehicle.theta))
         painter.fillRect(
-            wheel.x - self._vehicle.x - wheel.width / 2,
-            wheel.y - self._vehicle.y - wheel.height / 2,
+            0 - wheel.width / 2,
+            0 - wheel.height / 2,
             wheel.width,
             wheel.height,
             "black"
         )
 
     def _draw_sensor(self, sensor: Sensor, painter: QPainter):
-        x = sensor.x - self._vehicle.x - sensor.radius / 2
-        y = sensor.y - self._vehicle.y - sensor.radius / 2
-
         # Draw sensor lines
         painter.setPen("red")
         line = QLineF()
-        line.setP1(QPointF(x + 4, y + 4))
-        line.setAngle(-math.degrees(sensor.sense_angle))
-        line.setLength(sensor.sense_length)
+        line.setP1(QPointF(*sensor.line_start()))
+        line.setP2(QPointF(*sensor.line_end(self._vehicle.theta)))
         painter.drawLine(line)
 
         # Draw sensor
         painter.setPen("black")
         painter.drawEllipse(
-            x,
-            y,
-            sensor.radius,
-            sensor.radius
+            sensor.x - sensor.size / 2,
+            sensor.y - sensor.size / 2,
+            sensor.size,
+            sensor.size
         )

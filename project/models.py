@@ -16,7 +16,7 @@ class Sensor:
     def __init__(self, x: float, y: float, radius: float, sense_angle: float):
         self.x = x
         self.y = y
-        self.radius = radius
+        self.size = radius
         self.sense_length = 200
         self.sense_angle = sense_angle  # In RADIANS
 
@@ -54,7 +54,6 @@ class Sensor:
 
         if min(sensor_xs) <= x <= max(sensor_xs) and min(sensor_ys) <= y <= max(sensor_ys) and \
                 min(line_xs) <= x <= max(line_xs) and min(line_ys) <= y <= max(line_ys):
-            print(f"({x, y}) : {sensor_xs} | {sensor_ys} | {line_xs} | {line_ys}")
             return x, y
 
 
@@ -66,6 +65,9 @@ class Vehicle:
         self.height: float = VEHICLE_SIZE
         self.theta: float = math.radians(90)  # theta is in RADIANS, but I converted it from degrees for readability
         self.max_speed: float = 5
+
+        # Wheels and Sensors are initially positioned as if the robot's angle is 0 degrees.
+        # This will later be adjusted.
 
         # Wheels
         wheel_width = VEHICLE_SIZE / 2
@@ -86,6 +88,12 @@ class Vehicle:
             Sensor(sensor_x, (self.y + (self.height / 2)) * 0.75, sensor_radius, sense_angle)
         ]
 
+        # Recalibrate positions
+        for wheel in self.wheels:
+            wheel.x, wheel.y = self._calculate_wheel_position(wheel)
+        for sensor in self.sensors:
+            sensor.x, sensor.y = self._calculate_sensor_position(sensor)
+
     def move(self):
         # Referenced and modified from https://www.youtube.com/watch?v=zHboXMY45YU
         dx = ((self.wheels[0].speed + self.wheels[1].speed) / 2) * math.cos(self.theta)
@@ -97,13 +105,35 @@ class Vehicle:
         self.y += dy
         self.theta += dtheta
         self.theta %= 2 * math.pi
+        # print(f"Car {self.x, self.y}")
 
         # Move wheels
-        for wheel in self.wheels:
+        for i, wheel in enumerate(self.wheels):
             wheel.x += dx
             wheel.y += dy
+            # print(f"  Wheel{i} {wheel.x, wheel.y}")
 
         # Move sensors
-        for sensor in self.sensors:
+        for i, sensor in enumerate(self.sensors):
             sensor.x += dx
             sensor.y += dy
+            # print(f"  Sensor{i} {sensor.x, sensor.y} {sensor.line_start()} {sensor.line_end(self.theta)}")
+
+    def _calculate_wheel_position(self, wheel: Wheel):
+        length = VEHICLE_SIZE / 2
+        angle = 2 * (math.atan((self.y - wheel.y) / length))
+        newx = self.x + length * math.cos(self.theta - angle)
+        newy = self.y + length * math.sin(self.theta - angle)
+        return newx, newy
+
+    def _calculate_sensor_position(self, sensor: Sensor):
+        # Finding the length between center point of vehicle and the part
+        angle = math.atan((self.y - sensor.y) / (VEHICLE_SIZE / 2))
+        sin = math.sin(angle)
+        length = VEHICLE_SIZE / 2
+        if sin:
+            length = (self.y - sensor.y) / sin
+
+        newx = self.x + length * math.cos(self.theta - angle)
+        newy = self.y + length * math.sin(self.theta - angle)
+        return newx, newy
