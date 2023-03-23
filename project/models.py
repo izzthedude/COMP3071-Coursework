@@ -6,7 +6,7 @@ class Wheel:
         self.x = x
         self.y = y
         self.width = width
-        self.height = self.width / 3
+        self.height = self.width * 3
         self.speed: float = 0.0
 
 
@@ -56,18 +56,9 @@ class Sensor:
 
     def _distance_from_start(self, x: int, y: int):
         startx, starty = self.line_start()
-        dx = startx - x
-        dy = starty - y
-
-        if dx == 0:
-            result = dy
-        elif dy == 0:
-            result = dx
-        else:
-            angle = math.atan(dy / dx)
-            result = dx / math.sin(angle)
-
-        return abs(result)
+        dx, dy = x - startx, y - starty
+        result = math.sqrt(dx ** 2 + dy ** 2)
+        return result
 
     def __repr__(self):
         return f"Sensor({int(self.x)},{int(self.y)})"
@@ -86,7 +77,7 @@ class Vehicle:
         # This will later be adjusted.
 
         # Wheels
-        wheel_width = self.width / 2
+        wheel_width = self.width / 6
         self.wheels: list[Wheel] = [
             Wheel(self.x, self.y - self.height / 2, wheel_width),
             Wheel(self.x, self.y + self.height / 2, wheel_width)
@@ -101,24 +92,28 @@ class Vehicle:
         self.sensors: list[Sensor] = [
             Sensor(sensor_x, (self.y + (self.height / 2)) * 0.25, sensor_size, -sense_angle),
             Sensor(sensor_x, (self.y + (self.height / 2)) * 0.50, sensor_size, 0),
-            Sensor(sensor_x, (self.y + (self.height / 2)) * 0.75, sensor_size, sense_angle)
+            Sensor(sensor_x, (self.y + (self.height / 2)) * 0.75, sensor_size, sense_angle),
+            Sensor(self.x - self.width / 2, (self.y + (self.height / 2)) * 0.66, sensor_size,
+                   -sense_angle + math.radians(180)),
+            Sensor(self.x - self.width / 2, (self.y + (self.height / 2)) * 0.33, sensor_size,
+                   sense_angle + math.radians(180)),
         ]
 
         # Recalibrate positions
         self._wheel_info = {}
         self._sensor_info = {}
         for wheel in self.wheels:
-            self._wheel_info[wheel] = self._calculate_wheel_info(wheel)
+            self._wheel_info[wheel] = self._calculate_part_info(wheel)
             wheel.x, wheel.y = self._calculate_position(*self._wheel_info[wheel])
         for sensor in self.sensors:
-            self._sensor_info[sensor] = self._calculate_sensor_info(sensor)
+            self._sensor_info[sensor] = self._calculate_part_info(sensor)
             sensor.x, sensor.y = self._calculate_position(*self._sensor_info[sensor])
 
     def move(self):
         # Referenced and modified from https://www.youtube.com/watch?v=zHboXMY45YU
         dx = ((self.wheels[0].speed + self.wheels[1].speed) / 2) * math.cos(self.theta)
         dy = ((self.wheels[0].speed + self.wheels[1].speed) / 2) * math.sin(self.theta)
-        dtheta = (self.wheels[0].speed - self.wheels[1].speed) / (self.width * 1)
+        dtheta = (self.wheels[0].speed - self.wheels[1].speed) / self.width
 
         # Move car
         self.x += dx
@@ -150,38 +145,21 @@ class Vehicle:
         tuple
             The x and y coordinates of the new position.
         """
-        newx = self.x + distance * math.cos(self.theta - angle)
-        newy = self.y + distance * math.sin(self.theta - angle)
+        newx = distance * math.cos(self.theta + angle) + self.x
+        newy = distance * math.sin(self.theta + angle) + self.y
         return newx, newy
 
-    def _calculate_wheel_info(self, wheel: Wheel):
+    def _calculate_part_info(self, part: Wheel | Sensor):
         """
-        Calculates some location information of wheel RELATIVE to the center of the vehicle.
+        Calculates some location information of a vehicle part RELATIVE to the center of the vehicle.
         This is intended to be used ONCE during initialisation.
 
         Returns
         -------
         tuple
-            The angle (in radians) and distance of the wheel from the center.
+            The angle (in radians) and distance of the part from the center.
         """
-        length = self.width / 2
-        angle = 2 * (math.atan((self.y - wheel.y) / length))
-        return angle, length
-
-    def _calculate_sensor_info(self, sensor: Sensor):
-        """
-        Calculates some location information of sensor RELATIVE to the center of the vehicle.
-        This is intended to be used ONCE during initialisation.
-
-        Returns
-        -------
-        tuple
-            The angle (in radians) and distance of the sensor from the center.
-        """
-        angle = math.atan((self.y - sensor.y) / (self.width / 2))
-        sin = math.sin(angle)
-        distance = self.width / 2
-        if sin:
-            distance = (self.y - sensor.y) / sin
-
+        dx, dy = part.x - self.x, part.y - self.y
+        distance = math.sqrt(dx ** 2 + dy ** 2)
+        angle = math.atan2(dy, dx)
         return angle, distance

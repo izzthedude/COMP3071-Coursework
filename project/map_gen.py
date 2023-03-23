@@ -21,14 +21,14 @@ class Direction(Enum):
 
 
 class MapTile:
-    def __init__(self, size: float, x: float, y: float, from_direction: Direction, to_direction: Direction):
+    def __init__(self, size: int, x: int, y: int, from_direction: Direction, to_direction: Direction):
         self.size = size
         self.x = x * size
         self.y = y * size
         self.from_direction = from_direction
         self.to_direction = to_direction
 
-        self.borders: list[tuple[tuple[float, float], tuple[float, float]] | None] = []
+        self.borders: list[tuple[tuple[int, int], tuple[int, int]] | None] = []
 
     def top_border(self):
         return self.borders[0]
@@ -71,9 +71,9 @@ class MapTile:
 
 
 class MapGenerator:
-    def __init__(self, tile_size: float, map_size: int = 7):
+    def __init__(self, tile_size: int, map_size: int = 7):
         self._map_size: int = map_size
-        self._tile_size: float = tile_size
+        self._tile_size: int = tile_size
         self._map: list[list[int | MapTile]] = []
         self._tiles: list[MapTile] = []
         self.regenerate()

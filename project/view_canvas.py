@@ -65,7 +65,7 @@ class CanvasView(QWidget):
 
     def _draw_wheel(self, wheel: Wheel, painter: QPainter):
         painter.translate(wheel.x, wheel.y)
-        painter.rotate(math.degrees(self._vehicle.theta))
+        painter.rotate(math.degrees(self._vehicle.theta) + 90)
         painter.fillRect(
             0 - wheel.width / 2,
             0 - wheel.height / 2,

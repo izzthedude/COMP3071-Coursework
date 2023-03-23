@@ -15,13 +15,13 @@ class AppController(QObject):
         self._panel: ControlPanel = self._window.panel
 
         size = 7
-        self._mapgen = MapGenerator(CANVAS_SIZE / size, size)
+        self._mapgen = MapGenerator(CANVAS_SIZE // size, size)
         self._panel.size_spinbox.setValue(size)
         self._panel.size_spinbox.valueChanged.connect(self._on_size_changed)
         self._panel.regenerate_button.clicked.connect(self._on_regenerate)
 
         start_x, start_y = self._calculate_vehicle_start()
-        self._vehicle = Vehicle(start_x, start_y, VEHICLE_SIZE, VEHICLE_SIZE, 0)
+        self._vehicle = Vehicle(start_x, start_y, VEHICLE_SIZE, VEHICLE_SIZE, 90)
         self._canvas: CanvasView = CanvasView(self._mapgen, self._vehicle)
         self._window.centralWidget().layout().addWidget(self._canvas)
 
@@ -31,12 +31,16 @@ class AppController(QObject):
         self._window.space_shortcut.activated.connect(self._on_startstop)
 
     def _tick(self):
+        # Move vehicle
         self._vehicle.move()
 
+        # Find intersection points
+        # NOTE: for some reason this doesn't detect some intersections at seemingly random ticks. really no clue why
         intersections = {}
+        tiles = self._mapgen.get_tiles()
         for i, sensor in enumerate(self._vehicle.sensors):
             first_intersected = False
-            for j, tile in enumerate(self._mapgen.get_tiles()):
+            for j, tile in enumerate(tiles):
                 if first_intersected:
                     break
                 for k, border in enumerate(tile.borders):
