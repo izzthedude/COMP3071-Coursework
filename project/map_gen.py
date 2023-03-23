@@ -1,8 +1,6 @@
 import random
 from enum import Enum
 
-from project.enums import *
-
 
 class Direction(Enum):
     LEFT = "L"
@@ -23,14 +21,14 @@ class Direction(Enum):
 
 
 class MapTile:
-    def __init__(self, size: int, x: int, y: int, from_direction: Direction, to_direction: Direction):
+    def __init__(self, size: float, x: float, y: float, from_direction: Direction, to_direction: Direction):
         self.size = size
         self.x = x * size
         self.y = y * size
         self.from_direction = from_direction
         self.to_direction = to_direction
 
-        self.borders: list[tuple[tuple[int, int], tuple[int, int]] | None] = []
+        self.borders: list[tuple[tuple[float, float], tuple[float, float]] | None] = []
 
     def top_border(self):
         return self.borders[0]
@@ -56,7 +54,7 @@ class MapTile:
                                        Direction.RIGHT)
         self.borders.append(right)
 
-    def _calculate_border(self, start: tuple[int, int], end: tuple[int, int], direction: Direction):
+    def _calculate_border(self, start: tuple[float, float], end: tuple[float, float], direction: Direction):
         border = start, end
         if self.from_direction == direction or self.to_direction == direction:
             border = None
@@ -73,17 +71,18 @@ class MapTile:
 
 
 class MapGenerator:
-    def __init__(self, size: int = 11):
-        self._size: int = size
-        self._map: list[int | MapTile] = []
+    def __init__(self, tile_size: float, map_size: int = 7):
+        self._map_size: int = map_size
+        self._tile_size: float = tile_size
+        self._map: list[list[int | MapTile]] = []
         self._tiles: list[MapTile] = []
         self.regenerate()
 
     def set_size(self, size: int):
-        self._size = size
+        self._map_size = size
 
     def get_size(self) -> int:
-        return self._size
+        return self._map_size
 
     def get_map(self) -> list:
         return self._map
@@ -92,12 +91,12 @@ class MapGenerator:
         return self._tiles
 
     def regenerate(self) -> list:
-        self._map = self._generate_map(self._new_map())
+        self._map = self._generate_map()
         return self._map
 
-    def _generate_map(self, array: list):
-        new_arr = array[0:]
-        x = self._size // 2
+    def _generate_map(self):
+        new_arr: list[list[int | MapTile]] = self._new_map()
+        x = self._map_size // 2
         y = 1
         to_direction: Direction = Direction.DOWN
         from_direction: Direction = to_direction
@@ -109,16 +108,15 @@ class MapGenerator:
                 direction_choices.remove(Direction.LEFT)
             to_direction = random.choice(direction_choices)
 
-            size = CANVAS_SIZE // self._size
-            tile = MapTile(size, x, y, from_direction.opposite(), to_direction)
+            tile = MapTile(self._tile_size, x, y, from_direction.opposite(), to_direction)
             new_arr[y][x] = tile
             self._tiles.append(tile)
 
             new_x, new_y = self._new_directions(to_direction, x, y)
             if to_direction != Direction.DOWN and self._within_ranges(new_x, new_y + 1) and new_arr[y - 1][new_x]:
                 new_y += 1
-                new_arr[y][x] = MapTile(size, x, y, Direction.UP, Direction.DOWN)
-                new_arr[new_y][x] = MapTile(size, x, new_y, Direction.UP, to_direction)
+                new_arr[y][x] = MapTile(self._tile_size, x, y, Direction.UP, Direction.DOWN)
+                new_arr[new_y][x] = MapTile(self._tile_size, x, new_y, Direction.UP, to_direction)
                 self._tiles.remove(self._tiles[-1])
                 self._tiles.append(new_arr[y][x])
                 self._tiles.append(new_arr[new_y][x])
@@ -130,6 +128,7 @@ class MapGenerator:
         self._tiles[-1].to_direction = self._tiles[-1].from_direction.opposite()
         for tile in self._tiles:
             tile._calculate_borders()
+
         return new_arr
 
     def _new_directions(self, new: Direction, x: int, y: int) -> tuple[int, int]:
@@ -145,21 +144,21 @@ class MapGenerator:
         return new_x, new_y
 
     def _new_map(self):
-        size = CANVAS_SIZE // self._size
-        first = MapTile(size, self._size // 2, 0, Direction.UP, Direction.DOWN)
-        array = [[0 for _ in range(self._size)] for __ in range(self._size)]
-        array[0][self._size // 2] = first
+        size = self._tile_size
+        first = MapTile(size, self._map_size // 2, 0, Direction.UP, Direction.DOWN)
+        array = [[0 for _ in range(self._map_size)] for __ in range(self._map_size)]
+        array[0][self._map_size // 2] = first
         self._tiles = []
         self._tiles.append(first)
         return array
 
     def _any_ends(self, array: list) -> bool:
-        return any(array[self._size - 1]) or \
+        return any(array[self._map_size - 1]) or \
             any([row[0] for row in array]) or \
             any([row[-1] for row in array])
 
     def _within_range(self, num: int) -> bool:
-        return 0 <= num < self._size
+        return 0 <= num < self._map_size
 
     def _within_ranges(self, x: int, y: int) -> bool:
         return self._within_range(x) and self._within_range(y)

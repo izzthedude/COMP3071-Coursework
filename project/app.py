@@ -1,13 +1,15 @@
 from PySide6.QtWidgets import *
 
-from project.window_main import MainWindow
 from project.controller_app import AppController
+from project.window_main import MainWindow
 
 
 class App(QApplication):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setApplicationName("Navigator")
+        self.setApplicationDisplayName("Navigator")
+        self.setApplicationVersion("0.1.0")
 
         self.main_window = MainWindow()
         self.main_window.quit_shortcut.activated.connect(self._on_quit_shortcut)

@@ -15,14 +15,14 @@ class AppController(QObject):
         self._panel: ControlPanel = self._window.panel
 
         size = 7
-        self._generator = MapGenerator(size)
+        self._mapgen = MapGenerator(CANVAS_SIZE / size, size)
         self._panel.size_spinbox.setValue(size)
         self._panel.size_spinbox.valueChanged.connect(self._on_size_changed)
         self._panel.regenerate_button.clicked.connect(self._on_regenerate)
 
         start_x, start_y = self._calculate_vehicle_start()
-        self._vehicle = Vehicle(start_x, start_y)
-        self._canvas: CanvasView = CanvasView(self._generator, self._vehicle)
+        self._vehicle = Vehicle(start_x, start_y, VEHICLE_SIZE, VEHICLE_SIZE, 0)
+        self._canvas: CanvasView = CanvasView(self._mapgen, self._vehicle)
         self._window.centralWidget().layout().addWidget(self._canvas)
 
         self._timer: QTimer = QTimer(self)
@@ -36,7 +36,7 @@ class AppController(QObject):
         intersections = {}
         for i, sensor in enumerate(self._vehicle.sensors):
             first_intersected = False
-            for j, tile in enumerate(self._generator.get_tiles()):
+            for j, tile in enumerate(self._mapgen.get_tiles()):
                 if first_intersected:
                     break
                 for k, border in enumerate(tile.borders):
@@ -53,11 +53,11 @@ class AppController(QObject):
         self._canvas.deleteLater()
         del self._canvas
 
-        self._canvas = CanvasView(self._generator, self._vehicle)
+        self._canvas = CanvasView(self._mapgen, self._vehicle)
         self._window.centralWidget().layout().addWidget(self._canvas)
 
     def _calculate_vehicle_start(self):
-        first_tile = self._generator.get_tiles()[0]
+        first_tile = self._mapgen.get_tiles()[0]
         x = first_tile.x + (first_tile.size / 2)
         y = 0 + (VEHICLE_SIZE / 2)
         return x, y
@@ -70,8 +70,8 @@ class AppController(QObject):
         self._is_running = not self._is_running
 
     def _on_size_changed(self, value: int):
-        self._generator.set_size(value)
+        self._mapgen.set_size(value)
 
     def _on_regenerate(self):
-        self._generator.regenerate()
+        self._mapgen.regenerate()
         self._recreate_canvas()

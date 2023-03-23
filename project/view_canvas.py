@@ -4,7 +4,7 @@ from PySide6.QtCore import *
 from PySide6.QtGui import *
 from PySide6.QtWidgets import *
 
-from project.enums import *
+from project.enums import CANVAS_SIZE
 from project.map_gen import MapTile, MapGenerator
 from project.models import Vehicle, Wheel, Sensor
 
@@ -19,51 +19,49 @@ class CanvasView(QWidget):
 
     def paintEvent(self, event):
         p = QPainter(self)
-        self._draw_tiles(p)
-        p.save()
-        self._draw_vehicle(p)
-        p.restore()
 
-    def _draw_tiles(self, painter: QPainter):
+        # Draw tiles
         for tile in self._tiles:
-            for border in tile.borders:
-                if border is not None:
-                    start, end = border
-                    x_start, y_start = start
-                    x_end, y_end = end
-                    painter.drawLine(
-                        x_start,
-                        y_start,
-                        x_end,
-                        y_end
-                    )
+            self._draw_tile(tile, p)
 
-    def _draw_vehicle(self, painter: QPainter):
-        # Draw main body
-        painter.translate(self._vehicle.x, self._vehicle.y)
-        painter.rotate(math.degrees(self._vehicle.theta))
-        painter.fillRect(
+        # Draw vehicle's main body
+        p.translate(self._vehicle.x, self._vehicle.y)
+        p.rotate(math.degrees(self._vehicle.theta))
+        p.fillRect(
             0 - self._vehicle.width / 2,
             0 - self._vehicle.height / 2,
             self._vehicle.width,
             self._vehicle.height,
             "blue"
         )
-        painter.resetTransform()
+        p.resetTransform()
 
         # Draw wheels
         for wheel in self._vehicle.wheels:
-            self._draw_wheel(wheel, painter)
-            painter.resetTransform()
+            self._draw_wheel(wheel, p)
+            p.resetTransform()
 
         # Draw sensors
         brush = QBrush()
         brush.setStyle(Qt.BrushStyle.SolidPattern)
         brush.setColor("yellow")
-        painter.setBrush(brush)
+        p.setBrush(brush)
         for sensor in self._vehicle.sensors:
-            self._draw_sensor(sensor, painter)
-            painter.resetTransform()
+            self._draw_sensor(sensor, p)
+            p.resetTransform()
+
+    def _draw_tile(self, tile: MapTile, painter: QPainter):
+        for border in tile.borders:
+            if border is not None:
+                start, end = border
+                x_start, y_start = start
+                x_end, y_end = end
+                painter.drawLine(
+                    x_start,
+                    y_start,
+                    x_end,
+                    y_end
+                )
 
     def _draw_wheel(self, wheel: Wheel, painter: QPainter):
         painter.translate(wheel.x, wheel.y)

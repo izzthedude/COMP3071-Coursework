@@ -1,7 +1,5 @@
 import math
 
-from project.enums import *
-
 
 class Wheel:
     def __init__(self, x: float, y: float, width: float):
@@ -13,10 +11,10 @@ class Wheel:
 
 
 class Sensor:
-    def __init__(self, x: float, y: float, radius: float, sense_angle: float):
+    def __init__(self, x: float, y: float, size: float, sense_angle: float):
         self.x = x
         self.y = y
-        self.size = radius
+        self.size = size
         self.sense_length = 200
         self.sense_angle = sense_angle  # In RADIANS
 
@@ -76,19 +74,19 @@ class Sensor:
 
 
 class Vehicle:
-    def __init__(self, x: float, y: float):
+    def __init__(self, x: float, y: float, width: float, height: float, angle: float):
         self.x: float = x  # x and y are the CENTER point of the vehicle
         self.y: float = y
-        self.width: float = VEHICLE_SIZE
-        self.height: float = VEHICLE_SIZE
-        self.theta: float = math.radians(0)  # theta is in RADIANS, but I converted it from degrees for readability
+        self.width: float = width
+        self.height: float = height
+        self.theta: float = math.radians(angle)  # theta is in RADIANS, but I converted it from degrees for readability
         self.max_speed: float = 5
 
         # Wheels and Sensors are initially positioned as if the robot's angle is 0 degrees.
         # This will later be adjusted.
 
         # Wheels
-        wheel_width = VEHICLE_SIZE / 2
+        wheel_width = self.width / 2
         self.wheels: list[Wheel] = [
             Wheel(self.x, self.y - self.height / 2, wheel_width),
             Wheel(self.x, self.y + self.height / 2, wheel_width)
@@ -98,7 +96,7 @@ class Vehicle:
 
         # Sensors
         sensor_x = self.x + self.width / 2
-        sensor_size = VEHICLE_SIZE / 6
+        sensor_size = self.width / 6
         sense_angle = math.radians(45)
         self.sensors: list[Sensor] = [
             Sensor(sensor_x, (self.y + (self.height / 2)) * 0.25, sensor_size, -sense_angle),
@@ -166,7 +164,7 @@ class Vehicle:
         tuple
             The angle (in radians) and distance of the wheel from the center.
         """
-        length = VEHICLE_SIZE / 2
+        length = self.width / 2
         angle = 2 * (math.atan((self.y - wheel.y) / length))
         return angle, length
 
@@ -180,9 +178,9 @@ class Vehicle:
         tuple
             The angle (in radians) and distance of the sensor from the center.
         """
-        angle = math.atan((self.y - sensor.y) / (VEHICLE_SIZE / 2))
+        angle = math.atan((self.y - sensor.y) / (self.width / 2))
         sin = math.sin(angle)
-        distance = VEHICLE_SIZE / 2
+        distance = self.width / 2
         if sin:
             distance = (self.y - sensor.y) / sin
 
