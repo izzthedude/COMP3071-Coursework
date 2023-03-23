@@ -70,7 +70,8 @@ class AppController(QObject):
         self._is_running = not self._is_running
 
     def _on_size_changed(self, value: int):
-        self._mapgen.set_size(value)
+        self._mapgen.set_map_size(value)
+        self._mapgen.set_tile_size(CANVAS_SIZE / value)
 
     def _on_regenerate(self):
         self._mapgen.regenerate()

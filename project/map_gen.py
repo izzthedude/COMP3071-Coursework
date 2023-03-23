@@ -78,14 +78,17 @@ class MapGenerator:
         self._tiles: list[MapTile] = []
         self.regenerate()
 
-    def set_size(self, size: int):
+    def set_map_size(self, size: int):
         self._map_size = size
 
-    def get_size(self) -> int:
+    def get_map_size(self) -> int:
         return self._map_size
 
     def get_map(self) -> list:
         return self._map
+
+    def set_tile_size(self, size: float):
+        self._tile_size = size
 
     def get_tiles(self) -> list[MapTile]:
         return self._tiles
