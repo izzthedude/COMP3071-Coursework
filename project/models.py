@@ -54,7 +54,25 @@ class Sensor:
 
         if min(sensor_xs) <= x <= max(sensor_xs) and min(sensor_ys) <= y <= max(sensor_ys) and \
                 min(line_xs) <= x <= max(line_xs) and min(line_ys) <= y <= max(line_ys):
-            return x, y
+            return x, y, self._distance_from_start(x, y)
+
+    def _distance_from_start(self, x: int, y: int):
+        startx, starty = self.line_start()
+        dx = startx - x
+        dy = starty - y
+
+        if dx == 0:
+            result = dy
+        elif dy == 0:
+            result = dx
+        else:
+            angle = math.atan(dy / dx)
+            result = dx / math.sin(angle)
+
+        return abs(result)
+
+    def __repr__(self):
+        return f"Sensor({int(self.x)},{int(self.y)})"
 
 
 class Vehicle:

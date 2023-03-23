@@ -33,8 +33,18 @@ class AppController(QObject):
     def _tick(self):
         self._vehicle.move()
 
+        intersections = {}
         for i, sensor in enumerate(self._vehicle.sensors):
-            print(f"Sensor{i}: {sensor.line_start(), sensor.line_end(self._vehicle.theta)}")
+            first_intersected = False
+            for j, tile in enumerate(self._generator.get_tiles()):
+                if first_intersected:
+                    break
+                for k, border in enumerate(tile.borders):
+                    if border:
+                        if intersects := sensor.intersects(border, self._vehicle.theta):
+                            intersections[sensor] = intersects
+                            first_intersected = True
+                            break
 
         self._recreate_canvas()
 
