@@ -1,5 +1,7 @@
 import math
 
+from project import utils
+
 
 class Wheel:
     def __init__(self, x: float, y: float, width: float):
@@ -22,10 +24,7 @@ class Sensor:
         return self.x, self.y
 
     def line_end(self, angle_offset: float = 0):
-        cum_angle = self.sense_angle + angle_offset
-        end_x = self.sense_length * math.cos(cum_angle) + self.x
-        end_y = self.sense_length * math.sin(cum_angle) + self.y
-        return end_x, end_y
+        return utils.point_on_circle(self.line_start(), self.sense_length, self.sense_angle + angle_offset)
 
     def intersects(self, line: tuple[tuple[int, int], tuple[int, int]], angle_offset: float = 0):
         sensor_line = (self.line_start(), self.line_end(angle_offset))
@@ -52,13 +51,7 @@ class Sensor:
 
         if min(sensor_xs) <= x <= max(sensor_xs) and min(sensor_ys) <= y <= max(sensor_ys) and \
                 min(line_xs) <= x <= max(line_xs) and min(line_ys) <= y <= max(line_ys):
-            return x, y, self._distance_from_start(x, y)
-
-    def _distance_from_start(self, x: int, y: int):
-        startx, starty = self.line_start()
-        dx, dy = x - startx, y - starty
-        result = math.sqrt(dx ** 2 + dy ** 2)
-        return result
+            return x, y, utils.distance_2p(self.line_start(), (x, y))
 
     def __repr__(self):
         return f"Sensor({int(self.x)},{int(self.y)})"
@@ -111,8 +104,7 @@ class Vehicle:
 
     def move(self):
         # Referenced and modified from https://www.youtube.com/watch?v=zHboXMY45YU
-        dx = ((self.wheels[0].speed + self.wheels[1].speed) / 2) * math.cos(self.theta)
-        dy = ((self.wheels[0].speed + self.wheels[1].speed) / 2) * math.sin(self.theta)
+        dx, dy = utils.point_on_circle((0, 0), (self.wheels[0].speed + self.wheels[1].speed) / 2, self.theta)
         dtheta = (self.wheels[0].speed - self.wheels[1].speed) / self.width
 
         # Move car
@@ -145,9 +137,7 @@ class Vehicle:
         tuple
             The x and y coordinates of the new position.
         """
-        newx = distance * math.cos(self.theta + angle) + self.x
-        newy = distance * math.sin(self.theta + angle) + self.y
-        return newx, newy
+        return utils.point_on_circle((self.x, self.y), distance, self.theta + angle)
 
     def _calculate_part_info(self, part: Wheel | Sensor):
         """
@@ -159,7 +149,6 @@ class Vehicle:
         tuple
             The angle (in radians) and distance of the part from the center.
         """
-        dx, dy = part.x - self.x, part.y - self.y
-        distance = math.sqrt(dx ** 2 + dy ** 2)
-        angle = math.atan2(dy, dx)
+        angle = math.atan2(part.y - self.y, part.x - self.x)
+        distance = utils.distance_2p((self.x, self.y), (part.x, part.y))
         return angle, distance
