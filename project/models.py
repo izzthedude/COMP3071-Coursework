@@ -1,6 +1,7 @@
 import math
 
 from project import utils
+from project.enums import *
 
 
 class Wheel:
@@ -17,7 +18,7 @@ class Sensor:
         self.x = x
         self.y = y
         self.size = size
-        self.sense_length = 200
+        self.sense_length = CANVAS_SIZE
         self.sense_angle = sense_angle  # In RADIANS
 
     def line_start(self):
@@ -29,29 +30,25 @@ class Sensor:
     def intersects(self, line: tuple[tuple[int, int], tuple[int, int]], angle_offset: float = 0):
         sensor_line = (self.line_start(), self.line_end(angle_offset))
 
-        # Code taken from https://stackoverflow.com/a/20677983
-        ydiff = (sensor_line[0][1] - sensor_line[1][1], line[0][1] - line[1][1])
-        xdiff = (sensor_line[0][0] - sensor_line[1][0], line[0][0] - line[1][0])
+        # Code taken from https://gist.github.com/kylemcdonald/6132fc1c29fd3767691442ba4bc84018
+        (x1, y1), (x2, y2) = sensor_line
+        (x3, y3), (x4, y4) = line
 
-        def det(a, b):
-            return a[0] * b[1] - a[1] * b[0]
+        denom = (y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1)
+        if denom == 0:  # parallel
+            return None
 
-        div = det(xdiff, ydiff)
-        if div == 0:
-            return
+        ua = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) / denom
+        if not (0 < ua < 1):  # out of range
+            return None
 
-        d = (det(*sensor_line), det(*line))
-        x = det(d, xdiff) / div
-        y = det(d, ydiff) / div
+        ub = ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3)) / denom
+        if not (0 < ub < 1):  # out of range
+            return None
 
-        sensor_xs = [p[0] for p in sensor_line]
-        sensor_ys = [p[1] for p in sensor_line]
-        line_xs = [p[0] for p in line]
-        line_ys = [p[1] for p in line]
-
-        if min(sensor_xs) <= x <= max(sensor_xs) and min(sensor_ys) <= y <= max(sensor_ys) and \
-                min(line_xs) <= x <= max(line_xs) and min(line_ys) <= y <= max(line_ys):
-            return x, y, utils.distance_2p(self.line_start(), (x, y))
+        x = x1 + ua * (x2 - x1)
+        y = y1 + ua * (y2 - y1)
+        return x, y, utils.distance_2p(self.line_start(), (x, y))
 
     def __repr__(self):
         return f"Sensor({int(self.x)},{int(self.y)})"
@@ -75,8 +72,6 @@ class Vehicle:
             Wheel(self.x, self.y - self.height / 2, wheel_width),
             Wheel(self.x, self.y + self.height / 2, wheel_width)
         ]
-        self.wheels[0].speed = 2
-        self.wheels[1].speed = 1.8
 
         # Sensors
         sensor_x = self.x + self.width / 2
@@ -86,10 +81,10 @@ class Vehicle:
             Sensor(sensor_x, (self.y + (self.height / 2)) * 0.25, sensor_size, -sense_angle),
             Sensor(sensor_x, (self.y + (self.height / 2)) * 0.50, sensor_size, 0),
             Sensor(sensor_x, (self.y + (self.height / 2)) * 0.75, sensor_size, sense_angle),
-            Sensor(self.x - self.width / 2, (self.y + (self.height / 2)) * 0.66, sensor_size,
-                   -sense_angle + math.radians(180)),
-            Sensor(self.x - self.width / 2, (self.y + (self.height / 2)) * 0.33, sensor_size,
-                   sense_angle + math.radians(180)),
+            # Sensor(self.x - self.width / 2, (self.y + (self.height / 2)) * 0.66, sensor_size,
+            #        -sense_angle + math.radians(180)),
+            # Sensor(self.x - self.width / 2, (self.y + (self.height / 2)) * 0.33, sensor_size,
+            #        sense_angle + math.radians(180)),
         ]
 
         # Recalibrate positions
@@ -114,6 +109,23 @@ class Vehicle:
 
         # Recalculate positions of vehicle parts
         self._recalculate_parts()
+
+    def lspeed(self):
+        return self.wheels[0].speed
+
+    def rspeed(self):
+        return self.wheels[1].speed
+
+    def speed(self):
+        return (self.lspeed() + self.rspeed()) / 2
+
+    def change_speed(self, left: float, right: float):
+        lspeed = self.lspeed() + left
+        rspeed = self.rspeed() + right
+
+        if -self.max_speed <= (lspeed + rspeed) / 2 <= self.max_speed:
+            self.wheels[0].speed = lspeed
+            self.wheels[1].speed = rspeed
 
     def reset(self):
         self.theta = math.radians(90)

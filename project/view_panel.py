@@ -22,10 +22,14 @@ class ControlPanel(QScrollArea):
         self.regenerate_button = QPushButton("Regenerate")
         self._map_section.add_row("", self.regenerate_button)
 
-        # General Settings
+        # Vehicle Settings
         self._vehicle_section = _Section("Vehicle")
         self.reset_btn = QPushButton("Reset Vehicle")
+        self.change_speed_spinbox = QDoubleSpinBox()
+        self.turn_multiplier_spinbox = QSpinBox()
         self._vehicle_section.add_row("", self.reset_btn)
+        self._vehicle_section.add_row("Change of Speed Rate", self.change_speed_spinbox)
+        self._vehicle_section.add_row("Turn Speed Multiplier", self.turn_multiplier_spinbox)
 
         self.layout().addWidget(self._map_section)
         self.layout().addWidget(self._vehicle_section)

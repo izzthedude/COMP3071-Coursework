@@ -10,13 +10,14 @@ from project.models import Vehicle, Wheel, Sensor
 
 
 class CanvasView(QWidget):
-    def __init__(self, mapgen: MapGenerator, vehicle: Vehicle, intersections: list, parent: QObject = None):
+    def __init__(self, mapgen: MapGenerator, vehicle: Vehicle, intersections: list, is_running: bool, parent: QObject = None):
         super().__init__(parent)
 
         self.setFixedSize(CANVAS_SIZE, CANVAS_SIZE)
         self._tiles: list[MapTile] = mapgen.get_tiles()
         self._vehicle: Vehicle = vehicle
         self._intersections: list[tuple[float, float, float]] = intersections
+        self._is_running: bool = is_running
 
     def paintEvent(self, event):
         p = QPainter(self)
@@ -52,17 +53,10 @@ class CanvasView(QWidget):
             p.resetTransform()
 
         # Draw vehicle info
-        info = {
-            "x": f"{self._vehicle.x:.2f}",
-            "y": f"{self._vehicle.y:.2f}",
-            "angle": f"{math.degrees(self._vehicle.theta):.2f}",
-            "vl": f"{self._vehicle.wheels[0].speed: .2f}",
-            "vr": f"{self._vehicle.wheels[1].speed:.2f}"
-        }
-        self._draw_vehicle_info(p, **info)
+        self._draw_topleft_info(p)
 
         # Draw intersections info
-        self._draw_intersection_info(p, self._intersections)
+        self._draw_topright_info(p, self._intersections)
 
     def _draw_tile(self, tile: MapTile, painter: QPainter):
         for border in tile.borders:
@@ -91,10 +85,12 @@ class CanvasView(QWidget):
     def _draw_sensor(self, sensor: Sensor, painter: QPainter):
         # Draw sensor lines
         painter.setPen("red")
+        painter.setOpacity(0.4)
         line = QLineF()
         line.setP1(QPointF(*sensor.line_start()))
         line.setP2(QPointF(*sensor.line_end(self._vehicle.theta)))
         painter.drawLine(line)
+        painter.setOpacity(1)
 
         # Draw sensor
         painter.setPen("black")
@@ -105,22 +101,45 @@ class CanvasView(QWidget):
             sensor.size
         )
 
-    def _draw_vehicle_info(self, painter: QPainter, **kwargs):
-        font_height = QFontMetrics(painter.font()).height()
+    def _draw_topleft_info(self, painter: QPainter):
+        # Draw start/stop instruction
+        painter.save()
+        font = painter.font()
+        font.setBold(True)
+        painter.setFont(font)
 
+        is_running = "(RUNNING)" if self._is_running else "(STOPPED)"
+        font_height = QFontMetrics(font).height()
         x, y = 0, font_height
-        for key, value in kwargs.items():
+        painter.drawText(x, y, f"Press SPACE to start/stop the timer {is_running}")
+        painter.restore()
+        y += font_height
+
+        # Draw vehicle info
+        info = {
+            "x": f"{self._vehicle.x:.2f}",
+            "y": f"{self._vehicle.y:.2f}",
+            "angle": f"{math.degrees(self._vehicle.theta):.2f}",
+            "vl": f"{self._vehicle.lspeed(): .2f}",
+            "vr": f"{self._vehicle.rspeed():.2f}",
+            "speed": f"{self._vehicle.speed():.2f}"
+        }
+        font_height = QFontMetrics(painter.font()).height()
+        for key, value in info.items():
             painter.drawText(x, y, f"{key}: {value}")
             y += font_height
 
-    def _draw_intersection_info(self, painter: QPainter, intersections: list):
+    def _draw_topright_info(self, painter: QPainter, intersections: list):
         font_height = QFontMetrics(painter.font()).height()
         x, y = 750, font_height
 
         # Draw title
-        painter.font().setBold(True)
+        painter.save()
+        font = painter.font()
+        font.setBold(True)
+        painter.setFont(font)
         painter.drawText(x, y, "Sensors Intersections (x, y, distance)")
-        painter.font().setBold(False)
+        painter.restore()
 
         y += font_height
         for i, info in enumerate(intersections):
