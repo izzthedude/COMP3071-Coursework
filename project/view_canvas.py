@@ -10,12 +10,13 @@ from project.models import Vehicle, Wheel, Sensor
 
 
 class CanvasView(QWidget):
-    def __init__(self, mapgen: MapGenerator, vehicle: Vehicle, parent: QObject = None):
+    def __init__(self, mapgen: MapGenerator, vehicle: Vehicle, intersections: list, parent: QObject = None):
         super().__init__(parent)
 
         self.setFixedSize(CANVAS_SIZE, CANVAS_SIZE)
         self._tiles: list[MapTile] = mapgen.get_tiles()
         self._vehicle: Vehicle = vehicle
+        self._intersections: list[tuple[float, float, float]] = intersections
 
     def paintEvent(self, event):
         p = QPainter(self)
@@ -49,6 +50,19 @@ class CanvasView(QWidget):
         for sensor in self._vehicle.sensors:
             self._draw_sensor(sensor, p)
             p.resetTransform()
+
+        # Draw vehicle info
+        info = {
+            "x": f"{self._vehicle.x:.2f}",
+            "y": f"{self._vehicle.y:.2f}",
+            "angle": f"{math.degrees(self._vehicle.theta):.2f}",
+            "vl": f"{self._vehicle.wheels[0].speed: .2f}",
+            "vr": f"{self._vehicle.wheels[1].speed:.2f}"
+        }
+        self._draw_vehicle_info(p, **info)
+
+        # Draw intersections info
+        self._draw_intersection_info(p, self._intersections)
 
     def _draw_tile(self, tile: MapTile, painter: QPainter):
         for border in tile.borders:
@@ -90,3 +104,29 @@ class CanvasView(QWidget):
             sensor.size,
             sensor.size
         )
+
+    def _draw_vehicle_info(self, painter: QPainter, **kwargs):
+        font_height = QFontMetrics(painter.font()).height()
+
+        x, y = 0, font_height
+        for key, value in kwargs.items():
+            painter.drawText(x, y, f"{key}: {value}")
+            y += font_height
+
+    def _draw_intersection_info(self, painter: QPainter, intersections: list):
+        font_height = QFontMetrics(painter.font()).height()
+        x, y = 750, font_height
+
+        # Draw title
+        painter.font().setBold(True)
+        painter.drawText(x, y, "Sensors Intersections (x, y, distance)")
+        painter.font().setBold(False)
+
+        y += font_height
+        for i, info in enumerate(intersections):
+            text = "-"
+            if info:
+                ix, iy, distance = info
+                text = f"({ix:.2f},{iy:.2f},{distance:.2f})"
+            painter.drawText(x, y, f"Sensor {i + 1}: {text}")
+            y += font_height

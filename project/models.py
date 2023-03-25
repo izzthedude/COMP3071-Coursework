@@ -105,18 +105,24 @@ class Vehicle:
     def move(self):
         # Referenced and modified from https://www.youtube.com/watch?v=zHboXMY45YU
         dx, dy = utils.point_on_circle((0, 0), (self.wheels[0].speed + self.wheels[1].speed) / 2, self.theta)
-        dtheta = (self.wheels[0].speed - self.wheels[1].speed) / self.width
+        self.theta += (self.wheels[0].speed - self.wheels[1].speed) / self.width
+        self.theta %= 2 * math.pi
 
         # Move car
         self.x += dx
         self.y += dy
-        self.theta += dtheta
-        self.theta %= 2 * math.pi
 
+        # Recalculate positions of vehicle parts
+        self._recalculate_parts()
+
+    def reset(self):
+        self.theta = math.radians(90)
+        self._recalculate_parts()
+
+    def _recalculate_parts(self):
         # Move wheels
         for i, wheel in enumerate(self.wheels):
             wheel.x, wheel.y = self._calculate_position(*self._wheel_info[wheel])
-
         # Move sensors
         for i, sensor in enumerate(self.sensors):
             sensor.x, sensor.y = self._calculate_position(*self._sensor_info[sensor])

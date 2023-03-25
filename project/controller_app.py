@@ -18,16 +18,19 @@ class AppController(QObject):
         self._mapgen = MapGenerator(CANVAS_SIZE // size, size)
         self._panel.size_spinbox.setValue(size)
         self._panel.size_spinbox.valueChanged.connect(self._on_size_changed)
-        self._panel.regenerate_button.clicked.connect(self._on_regenerate)
 
         start_x, start_y = self._calculate_vehicle_start()
         self._vehicle = Vehicle(start_x, start_y, VEHICLE_SIZE, VEHICLE_SIZE, 90)
-        self._canvas: CanvasView = CanvasView(self._mapgen, self._vehicle)
+        self._canvas: CanvasView = CanvasView(self._mapgen, self._vehicle,
+                                              [None for _ in range(len(self._vehicle.sensors))])
         self._window.centralWidget().layout().addWidget(self._canvas)
 
         self._timer: QTimer = QTimer(self)
         self._timer.timeout.connect(self._tick)
         self._is_running: bool = False
+
+        self._panel.reset_btn.clicked.connect(self._on_reset)
+        self._panel.regenerate_button.clicked.connect(self._on_regenerate)
         self._window.space_shortcut.activated.connect(self._on_startstop)
 
     def _tick(self):
@@ -36,7 +39,7 @@ class AppController(QObject):
 
         # Find intersection points
         # NOTE: for some reason this doesn't detect some intersections at seemingly random ticks. really no clue why
-        intersections = {}
+        self._intersections = {sensor: None for sensor in self._vehicle.sensors}
         tiles = self._mapgen.get_tiles()
         for i, sensor in enumerate(self._vehicle.sensors):
             first_intersected = False
@@ -46,18 +49,18 @@ class AppController(QObject):
                 for k, border in enumerate(tile.borders):
                     if border:
                         if intersects := sensor.intersects(border, self._vehicle.theta):
-                            intersections[sensor] = intersects
+                            self._intersections[sensor] = intersects
                             first_intersected = True
                             break
 
         self._recreate_canvas()
 
-    def _recreate_canvas(self):
+    def _recreate_canvas(self, reset: bool = False):
         self._window.centralWidget().layout().removeWidget(self._canvas)
         self._canvas.deleteLater()
         del self._canvas
 
-        self._canvas = CanvasView(self._mapgen, self._vehicle)
+        self._canvas = CanvasView(self._mapgen, self._vehicle, list(self._intersections.values()))
         self._window.centralWidget().layout().addWidget(self._canvas)
 
     def _calculate_vehicle_start(self):
@@ -76,6 +79,11 @@ class AppController(QObject):
     def _on_size_changed(self, value: int):
         self._mapgen.set_map_size(value)
         self._mapgen.set_tile_size(CANVAS_SIZE / value)
+
+    def _on_reset(self):
+        self._vehicle.x, self._vehicle.y = self._calculate_vehicle_start()
+        self._vehicle.reset()
+        self._recreate_canvas()
 
     def _on_regenerate(self):
         self._mapgen.regenerate()

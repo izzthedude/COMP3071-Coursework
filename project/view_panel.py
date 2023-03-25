@@ -12,7 +12,8 @@ class ControlPanel(QScrollArea):
         layout.setAlignment(Qt.AlignTop)
         self.setLayout(layout)
 
-        self._map_section = _Section("Map Generator Settings")
+        # Map Generation Settings
+        self._map_section = _Section("Map Generation Settings")
 
         self.size_spinbox = QSpinBox()
         self.size_spinbox.setRange(3, 11)
@@ -21,7 +22,13 @@ class ControlPanel(QScrollArea):
         self.regenerate_button = QPushButton("Regenerate")
         self._map_section.add_row("", self.regenerate_button)
 
+        # General Settings
+        self._vehicle_section = _Section("Vehicle")
+        self.reset_btn = QPushButton("Reset Vehicle")
+        self._vehicle_section.add_row("", self.reset_btn)
+
         self.layout().addWidget(self._map_section)
+        self.layout().addWidget(self._vehicle_section)
 
 
 class _Section(QWidget):
