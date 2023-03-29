@@ -21,17 +21,24 @@ class Environment:
         self.intersections: dict = {sensor: (0.0, 0.0, 0.0) for sensor in self.vehicle.sensors}
 
     def tick(self):
-        # Find intersection points
+        # Find collision and intersection points
+        collision = None
         tiles = self._closest_tiles()
         for i, sensor in enumerate(self.vehicle.sensors):
+            if collision:
+                break
             first_intersected = False
             for j, tile in enumerate(tiles):
-                if first_intersected:
+                if first_intersected or collision:
                     break
                 for k, border in enumerate(tile.borders):
                     if border is not None:
-                        if intersects := sensor.intersects(border, self.vehicle.theta):
-                            self.intersections[sensor] = intersects
+                        collision = self.vehicle.collides(border)
+                        if collision:
+                            break
+
+                        if tile_intersects := sensor.intersects(border, self.vehicle.theta):
+                            self.intersections[sensor] = tile_intersects
                             first_intersected = True
                             break
 

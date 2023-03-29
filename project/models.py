@@ -30,24 +30,11 @@ class Sensor:
     def intersects(self, line: tuple[tuple[int, int], tuple[int, int]], angle_offset: float = 0):
         sensor_line = (self.line_start(), self.line_end(angle_offset))
 
-        # Code taken from https://gist.github.com/kylemcdonald/6132fc1c29fd3767691442ba4bc84018
-        (x1, y1), (x2, y2) = sensor_line
-        (x3, y3), (x4, y4) = line
-
-        denom = (y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1)
-        if denom == 0:  # parallel
+        intersection_point = utils.intersects(sensor_line, line)
+        if not intersection_point:
             return None
 
-        ua = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) / denom
-        if not (0 < ua < 1):  # out of range
-            return None
-
-        ub = ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3)) / denom
-        if not (0 < ub < 1):  # out of range
-            return None
-
-        x = x1 + ua * (x2 - x1)
-        y = y1 + ua * (y2 - y1)
+        x, y = intersection_point
         return x, y, utils.distance_2p(self.line_start(), (x, y))
 
     def __repr__(self):
@@ -86,13 +73,15 @@ class Vehicle:
         ]
 
         # Recalibrate positions
+        self._borders_info = [(self._calculate_position_info(*p1), (self._calculate_position_info(*p2)))
+                              for p1, p2 in self._calculate_borders()]
         self._wheel_info = {}
         self._sensor_info = {}
         for wheel in self.wheels:
-            self._wheel_info[wheel] = self._calculate_part_info(wheel)
+            self._wheel_info[wheel] = self._calculate_position_info(wheel.x, wheel.y)
             wheel.x, wheel.y = self._calculate_position(*self._wheel_info[wheel])
         for sensor in self.sensors:
-            self._sensor_info[sensor] = self._calculate_part_info(sensor)
+            self._sensor_info[sensor] = self._calculate_position_info(sensor.x, sensor.y)
             sensor.x, sensor.y = self._calculate_position(*self._sensor_info[sensor])
 
     def move(self):
@@ -136,6 +125,17 @@ class Vehicle:
         self.set_rspeed(0)
         self._recalculate_parts()
 
+    def borders(self):
+        # Returns the borders' positions relative to the vehicle's current position and angle
+        return [(self._calculate_position(angle1, distance1), self._calculate_position(angle2, distance2))
+                for (angle1, distance1), (angle2, distance2) in self._borders_info]
+
+    def collides(self, line: tuple[tuple[float, float], tuple[float, float]]):
+        for line2 in self.borders():
+            if intersection := utils.intersects(line2, line):
+                return intersection[0], intersection[1]
+        return None
+
     def _recalculate_parts(self):
         # Move wheels
         for i, wheel in enumerate(self.wheels):
@@ -146,7 +146,7 @@ class Vehicle:
 
     def _calculate_position(self, angle: float, distance: float):
         """
-        Calculates the position of a point relative to the center of the vehicle.
+        Calculates the position of a point relative to the center of the vehicle, given an angle and distance.
 
         Parameters
         ----------
@@ -162,19 +162,23 @@ class Vehicle:
         """
         return utils.point_on_circle((self.x, self.y), distance, self.theta + angle)
 
-    def _calculate_part_info(self, part: Wheel | Sensor):
+    def _calculate_position_info(self, x: float, y: float):
         """
-        Calculates some location information of a vehicle part RELATIVE to the center of the vehicle.
-        This is intended to be used ONCE during initialisation.
+        Calculates some location information of the given point RELATIVE to the center of the vehicle.
+        This is intended to be used ONLY ONCE during initialisation.
 
         Returns
         -------
         tuple
             The angle (in radians) and distance of the part from the center.
         """
-        angle = math.atan2(part.y - self.y, part.x - self.x)
-        distance = utils.distance_2p((self.x, self.y), (part.x, part.y))
+        angle = math.atan2(y - self.y, x - self.x)
+        distance = utils.distance_2p((self.x, self.y), (x, y))
         return angle, distance
+
+    def _calculate_borders(self):
+        x, y = self.x - self.width / 2, self.y - self.height / 2
+        return utils.calculate_borders((x, y), self.width, self.height)
 
     def _set_speed_helper(self, wheel: Wheel, speed: float):
         sign = math.copysign(1, speed)

@@ -1,6 +1,8 @@
 import random
 from enum import Enum
 
+from project import utils
+
 
 class Direction(Enum):
     LEFT = "L"
@@ -28,33 +30,34 @@ class MapTile:
         self.from_direction = from_direction
         self.to_direction = to_direction
 
+        # self._borders is for borders info without considering whether it should be drawn or not
+        self._borders: list[tuple[tuple[int, int], tuple[int, int]]] = []
         self.borders: list[tuple[tuple[int, int], tuple[int, int]] | None] = []
 
     def top_border(self):
-        return (self.x, self.y), (self.x + self.size, self.y)
-
-    def bottom_border(self):
-        return (self.x, self.y + self.size), (self.x + self.size, self.y + self.size)
-
-    def left_border(self):
-        return (self.x, self.y), (self.x, self.y + self.size)
+        return self._borders[0]
 
     def right_border(self):
-        return (self.x + self.size, self.y), (self.x + self.size, self.y + self.size)
+        return self._borders[1]
+
+    def bottom_border(self):
+        return self._borders[2]
+
+    def left_border(self):
+        return self._borders[3]
 
     def _calculate_borders(self):
-        top = self._calculate_border(self.top_border(), Direction.UP)
-        self.borders.append(top)
-        bottom = self._calculate_border(self.bottom_border(), Direction.DOWN)
-        self.borders.append(bottom)
-        left = self._calculate_border(self.left_border(), Direction.LEFT)
-        self.borders.append(left)
-        right = self._calculate_border(self.right_border(), Direction.RIGHT)
-        self.borders.append(right)
+        self._borders = utils.calculate_borders((self.x, self.y), self.size, self.size)
 
-    def _calculate_border(self, line: tuple[tuple[float, float], tuple[float, float]], direction: Direction):
+        self.borders = self._borders.copy()
+        self.borders[0] = self._determine_border(self._borders[0], Direction.UP)
+        self.borders[1] = self._determine_border(self._borders[1], Direction.RIGHT)
+        self.borders[2] = self._determine_border(self._borders[2], Direction.DOWN)
+        self.borders[3] = self._determine_border(self._borders[3], Direction.LEFT)
+
+    def _determine_border(self, line: tuple[tuple[float, float], tuple[float, float]], direction: Direction):
         border = line
-        if self.from_direction == direction or self.to_direction == direction:
+        if direction in [self.from_direction, self.to_direction]:
             border = None
         return border
 
@@ -135,12 +138,12 @@ class MapGenerator:
 
         last = self._tiles[-1]
         match last.to_direction:
-            case Direction.DOWN:
-                last.borders[1] = last.bottom_border()
-            case Direction.LEFT:
-                last.borders[2] = last.left_border()
             case Direction.RIGHT:
-                last.borders[3] = last.right_border()
+                last.borders[1] = last.right_border()
+            case Direction.DOWN:
+                last.borders[2] = last.bottom_border()
+            case Direction.LEFT:
+                last.borders[3] = last.left_border()
 
         return new_arr
 
