@@ -10,7 +10,8 @@ from project.models import Vehicle, Wheel, Sensor
 
 
 class CanvasView(QWidget):
-    def __init__(self, mapgen: MapGenerator, vehicle: Vehicle, intersections: list, is_running: bool, parent: QObject = None):
+    def __init__(self, mapgen: MapGenerator, vehicle: Vehicle, intersections: list, is_running: bool,
+                 parent: QObject = None):
         super().__init__(parent)
 
         self.setFixedSize(CANVAS_SIZE, CANVAS_SIZE)
@@ -119,7 +120,7 @@ class CanvasView(QWidget):
         info = {
             "x": f"{self._vehicle.x:.2f}",
             "y": f"{self._vehicle.y:.2f}",
-            "angle": f"{math.degrees(self._vehicle.theta):.2f}",
+            "angle": f"{math.degrees(self._vehicle.theta):.2f} | {self._vehicle.theta: .4f}",
             "vl": f"{self._vehicle.lspeed(): .2f}",
             "vr": f"{self._vehicle.rspeed():.2f}",
             "speed": f"{self._vehicle.speed():.2f}"

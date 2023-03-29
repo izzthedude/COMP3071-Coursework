@@ -31,31 +31,29 @@ class MapTile:
         self.borders: list[tuple[tuple[int, int], tuple[int, int]] | None] = []
 
     def top_border(self):
-        return self.borders[0]
+        return (self.x, self.y), (self.x + self.size, self.y)
 
     def bottom_border(self):
-        return self.borders[1]
+        return (self.x, self.y + self.size), (self.x + self.size, self.y + self.size)
 
     def left_border(self):
-        return self.borders[2]
+        return (self.x, self.y), (self.x, self.y + self.size)
 
     def right_border(self):
-        return self.borders[3]
+        return (self.x + self.size, self.y), (self.x + self.size, self.y + self.size)
 
     def _calculate_borders(self):
-        top = self._calculate_border((self.x, self.y), (self.x + self.size, self.y), Direction.UP)
+        top = self._calculate_border(self.top_border(), Direction.UP)
         self.borders.append(top)
-        bottom = self._calculate_border((self.x, self.y + self.size), (self.x + self.size, self.y + self.size),
-                                        Direction.DOWN)
+        bottom = self._calculate_border(self.bottom_border(), Direction.DOWN)
         self.borders.append(bottom)
-        left = self._calculate_border((self.x, self.y), (self.x, self.y + self.size), Direction.LEFT)
+        left = self._calculate_border(self.left_border(), Direction.LEFT)
         self.borders.append(left)
-        right = self._calculate_border((self.x + self.size, self.y), (self.x + self.size, self.y + self.size),
-                                       Direction.RIGHT)
+        right = self._calculate_border(self.right_border(), Direction.RIGHT)
         self.borders.append(right)
 
-    def _calculate_border(self, start: tuple[float, float], end: tuple[float, float], direction: Direction):
-        border = start, end
+    def _calculate_border(self, line: tuple[tuple[float, float], tuple[float, float]], direction: Direction):
+        border = line
         if self.from_direction == direction or self.to_direction == direction:
             border = None
         return border
@@ -131,6 +129,18 @@ class MapGenerator:
         self._tiles[-1].to_direction = self._tiles[-1].from_direction.opposite()
         for tile in self._tiles:
             tile._calculate_borders()
+
+        first = self._tiles[0]
+        first.borders[0] = first.top_border()
+
+        last = self._tiles[-1]
+        match last.to_direction:
+            case Direction.DOWN:
+                last.borders[1] = last.bottom_border()
+            case Direction.LEFT:
+                last.borders[2] = last.left_border()
+            case Direction.RIGHT:
+                last.borders[3] = last.right_border()
 
         return new_arr
 

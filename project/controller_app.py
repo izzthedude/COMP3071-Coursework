@@ -1,6 +1,10 @@
+import math
+
+import numpy as np
 from PySide6.QtCore import *
 from PySide6.QtGui import *
 
+from project.agent import NavigatorAgent, squash, desquash
 from project.enums import *
 from project.map_gen import MapGenerator
 from project.models import Vehicle
@@ -21,8 +25,16 @@ class AppController(QObject):
 
         start_x, start_y = self._calculate_vehicle_start()
         self._vehicle = Vehicle(start_x, start_y, VEHICLE_SIZE, VEHICLE_SIZE, 90)
+        self._vehicle.change_speed(1, 1)
+
+        self._current_theta = self._vehicle.theta
+        self._current_lspeed = self._vehicle.lspeed()
+        self._current_rspeed = self._vehicle.rspeed()
         self._dspeed = 0.1
         self._turn_multiplier = 10
+        self._dtheta_domain = (-math.pi, math.pi)
+        self._dspeed_domain = (-self._dspeed * self._turn_multiplier, self._dspeed * self._turn_multiplier)
+
         self._panel.change_speed_spinbox.setRange(0.1, 2.0)
         self._panel.change_speed_spinbox.setSingleStep(0.05)
         self._panel.change_speed_spinbox.setValue(self._dspeed)
@@ -38,17 +50,19 @@ class AppController(QObject):
         self._timer.timeout.connect(self._tick)
         self._is_running: bool = False
 
+        self._agent: NavigatorAgent = NavigatorAgent(len(self._vehicle.sensors), 2, 10, 3)
+        self._is_training: bool = False
+
         self._window.key_pressed.connect(self._on_key_pressed)
         self._panel.reset_btn.clicked.connect(self._on_reset)
         self._panel.size_spinbox.valueChanged.connect(self._on_size_changed)
         self._panel.regenerate_button.clicked.connect(self._on_regenerate)
         self._panel.change_speed_spinbox.valueChanged.connect(self._on_dspeed_changed)
         self._panel.turn_multiplier_spinbox.valueChanged.connect(self._on_turn_multiplier_changed)
+        self._panel.training_mode_btn.stateChanged.connect(self._on_training_mode_changed)
 
     def _tick(self):
         # Find intersection points
-        # NOTE: for some reason this doesn't detect some intersections at seemingly random ticks. really no clue why
-        self._intersections = {sensor: None for sensor in self._vehicle.sensors}
         tiles = self._mapgen.get_tiles()
         for i, sensor in enumerate(self._vehicle.sensors):
             first_intersected = False
@@ -61,6 +75,36 @@ class AppController(QObject):
                             self._intersections[sensor] = intersects
                             first_intersected = True
                             break
+
+        # Get values from agent OR train agent
+        inputs = np.array([[math.ceil(distance) for _, _, distance in self._intersections.values()]])
+        if self._is_training:
+            dtheta = self._vehicle.theta - self._current_theta
+            if dtheta:
+                self._current_theta = self._vehicle.theta
+
+            dlspeed = self._vehicle.lspeed() - self._current_lspeed
+            drspeed = self._vehicle.rspeed() - self._current_rspeed
+            if dlspeed:
+                self._current_lspeed = self._vehicle.lspeed()
+            if drspeed:
+                self._current_rspeed = self._vehicle.rspeed()
+
+            expected = np.array([
+                squash(dtheta, self._dtheta_domain),
+                squash(dlspeed, self._dspeed_domain),
+                squash(drspeed, self._dspeed_domain)
+            ])
+            losses = self._agent.train(inputs, expected)
+
+        else:
+            out_dtheta, out_lspeed, out_rspeed = self._agent.predict(inputs).tolist()[0]
+            dtheta = desquash(out_dtheta, self._dtheta_domain)
+            lspeed = desquash(out_lspeed, self._dspeed_domain)
+            rspeed = desquash(out_rspeed, self._dspeed_domain)
+            # self._vehicle.theta += dtheta
+            self._vehicle.change_speed(lspeed, rspeed)
+            print(f"dangle={math.degrees(dtheta)} {lspeed=} {rspeed=}")
 
         # Move vehicle and recreate canvas
         self._vehicle.move()
@@ -95,6 +139,8 @@ class AppController(QObject):
             elif event_type == QEvent.KeyRelease:
                 self._vehicle.change_speed(-turn_speed, turn_speed)
 
+        self._recreate_canvas()
+
     def _on_startstop(self):
         if self._is_running:
             self._timer.stop()
@@ -120,6 +166,9 @@ class AppController(QObject):
 
     def _on_turn_multiplier_changed(self, value: float):
         self._turn_multiplier = value
+
+    def _on_training_mode_changed(self, state: bool):
+        self._is_training = bool(state)
 
     def _recreate_canvas(self):
         self._window.centralWidget().layout().removeWidget(self._canvas)

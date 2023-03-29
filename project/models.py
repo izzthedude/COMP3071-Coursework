@@ -81,10 +81,12 @@ class Vehicle:
             Sensor(sensor_x, (self.y + (self.height / 2)) * 0.25, sensor_size, -sense_angle),
             Sensor(sensor_x, (self.y + (self.height / 2)) * 0.50, sensor_size, 0),
             Sensor(sensor_x, (self.y + (self.height / 2)) * 0.75, sensor_size, sense_angle),
+            Sensor(self.x, self.y + self.height / 2, sensor_size, math.radians(90)),
             # Sensor(self.x - self.width / 2, (self.y + (self.height / 2)) * 0.66, sensor_size,
             #        -sense_angle + math.radians(180)),
             # Sensor(self.x - self.width / 2, (self.y + (self.height / 2)) * 0.33, sensor_size,
             #        sense_angle + math.radians(180)),
+            Sensor(self.x, self.y - self.height / 2, sensor_size, math.radians(-90)),
         ]
 
         # Recalibrate positions
@@ -110,18 +112,29 @@ class Vehicle:
         # Recalculate positions of vehicle parts
         self._recalculate_parts()
 
+    def speed(self):
+        return (self.lspeed() + self.rspeed()) / 2
+
     def lspeed(self):
         return self.wheels[0].speed
 
     def rspeed(self):
         return self.wheels[1].speed
 
-    def speed(self):
-        return (self.lspeed() + self.rspeed()) / 2
+    def set_lspeed(self, speed: float):
+        sign = math.copysign(1, speed)
+        self.wheels[0].speed = sign * min(self.max_speed, speed)
+
+    def set_rspeed(self, speed: float):
+        sign = math.copysign(1, speed)
+        self.wheels[1].speed = sign * min(self.max_speed, speed)
 
     def change_speed(self, left: float, right: float):
         lspeed = self.lspeed() + left
         rspeed = self.rspeed() + right
+
+        lspeed = min(self.max_speed, lspeed)
+        rspeed = min(self.max_speed, rspeed)
 
         if -self.max_speed <= (lspeed + rspeed) / 2 <= self.max_speed:
             self.wheels[0].speed = lspeed

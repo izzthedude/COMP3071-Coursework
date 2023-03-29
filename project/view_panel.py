@@ -31,8 +31,14 @@ class ControlPanel(QScrollArea):
         self._vehicle_section.add_row("Change of Speed Rate", self.change_speed_spinbox)
         self._vehicle_section.add_row("Turn Speed Multiplier", self.turn_multiplier_spinbox)
 
+        # Agent Settings
+        self._agent_section = _Section("Agent")
+        self.training_mode_btn = QCheckBox()
+        self._agent_section.add_row("Training Mode", self.training_mode_btn)
+
         self.layout().addWidget(self._map_section)
         self.layout().addWidget(self._vehicle_section)
+        self.layout().addWidget(self._agent_section)
 
 
 class _Section(QWidget):
