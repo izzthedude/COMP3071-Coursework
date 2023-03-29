@@ -25,7 +25,6 @@ class AppController(QObject):
 
         start_x, start_y = self._calculate_vehicle_start()
         self._vehicle = Vehicle(start_x, start_y, VEHICLE_SIZE, VEHICLE_SIZE, 90)
-        self._vehicle.change_speed(1, 1)
         self._dspeed = 0.1
         self._turn_multiplier = 10
         self._dtheta_domain = (-math.pi, math.pi)
@@ -47,7 +46,7 @@ class AppController(QObject):
         self._is_running: bool = False
 
         self._agent: NavigatorAgent = NavigatorAgent(self._vehicle, 150)
-        self._is_training: bool = False
+        self._is_manual: bool = False
 
         self._window.key_pressed.connect(self._on_key_pressed)
         self._panel.reset_btn.clicked.connect(self._on_reset)
@@ -55,7 +54,7 @@ class AppController(QObject):
         self._panel.regenerate_button.clicked.connect(self._on_regenerate)
         self._panel.change_speed_spinbox.valueChanged.connect(self._on_dspeed_changed)
         self._panel.turn_multiplier_spinbox.valueChanged.connect(self._on_turn_multiplier_changed)
-        self._panel.training_mode_btn.stateChanged.connect(self._on_training_mode_changed)
+        self._panel.manual_mode_btn.stateChanged.connect(self._on_manual_mode_changed)
 
     def _tick(self):
         # Find intersection points
@@ -73,10 +72,11 @@ class AppController(QObject):
                             break
 
         # Determine speed and direction using agent
-        inputs = [distance for _, _, distance in self._intersections.values()]
-        lspeed, rspeed = self._agent.determine(inputs)
-        self._vehicle.set_lspeed(lspeed)
-        self._vehicle.set_rspeed(rspeed)
+        if not self._is_manual:
+            inputs = [distance for _, _, distance in self._intersections.values()]
+            lspeed, rspeed = self._agent.determine(inputs)
+            self._vehicle.set_lspeed(lspeed)
+            self._vehicle.set_rspeed(rspeed)
 
         # Move vehicle and recreate canvas
         self._vehicle.move()
@@ -93,10 +93,10 @@ class AppController(QObject):
             self._is_running = not self._is_running
 
         if code == Qt.Key.Key_W and event_type == QEvent.KeyPress:
-            self._vehicle.change_speed(self._dspeed, self._dspeed)
+            self._vehicle.change_speed(self._dspeed / 2, self._dspeed / 2)
 
         if code == Qt.Key.Key_S and event_type == QEvent.KeyPress:
-            self._vehicle.change_speed(-self._dspeed, -self._dspeed)
+            self._vehicle.change_speed(-self._dspeed / 2, -self._dspeed / 2)
 
         turn_speed = self._dspeed * self._turn_multiplier
         if code == Qt.Key.Key_A:
@@ -139,8 +139,8 @@ class AppController(QObject):
     def _on_turn_multiplier_changed(self, value: float):
         self._turn_multiplier = value
 
-    def _on_training_mode_changed(self, state: bool):
-        self._is_training = bool(state)
+    def _on_manual_mode_changed(self, state: bool):
+        self._is_manual = bool(state)
 
     def _recreate_canvas(self):
         self._window.centralWidget().layout().removeWidget(self._canvas)

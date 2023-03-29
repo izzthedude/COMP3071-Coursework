@@ -113,7 +113,7 @@ class Vehicle:
         self._recalculate_parts()
 
     def speed(self):
-        return (self.lspeed() + self.rspeed()) / 2
+        return self.lspeed() + self.rspeed()
 
     def lspeed(self):
         return self.wheels[0].speed
@@ -122,28 +122,22 @@ class Vehicle:
         return self.wheels[1].speed
 
     def set_lspeed(self, speed: float):
-        sign = math.copysign(1, speed)
-        new_speed = min(self.max_speed, abs(speed))
-        self.wheels[0].speed = sign * new_speed
+        self._set_speed_helper(self.wheels[0], speed)
 
     def set_rspeed(self, speed: float):
-        sign = math.copysign(1, speed)
-        new_speed = min(self.max_speed, abs(speed))
-        self.wheels[1].speed = sign * new_speed
+        self._set_speed_helper(self.wheels[1], speed)
 
     def change_speed(self, left: float, right: float):
         lspeed = self.lspeed() + left
         rspeed = self.rspeed() + right
 
-        lspeed = min(self.max_speed, lspeed)
-        rspeed = min(self.max_speed, rspeed)
-
-        if -self.max_speed <= (lspeed + rspeed) / 2 <= self.max_speed:
-            self.wheels[0].speed = lspeed
-            self.wheels[1].speed = rspeed
+        self.set_lspeed(lspeed)
+        self.set_rspeed(rspeed)
 
     def reset(self):
         self.theta = math.radians(90)
+        self.set_lspeed(0)
+        self.set_rspeed(0)
         self._recalculate_parts()
 
     def _recalculate_parts(self):
@@ -185,3 +179,8 @@ class Vehicle:
         angle = math.atan2(part.y - self.y, part.x - self.x)
         distance = utils.distance_2p((self.x, self.y), (part.x, part.y))
         return angle, distance
+
+    def _set_speed_helper(self, wheel: Wheel, speed: float):
+        sign = math.copysign(1, speed)
+        new_speed = min(self.max_speed, abs(speed))
+        wheel.speed = sign * new_speed

@@ -17,9 +17,9 @@ class ControlPanel(QScrollArea):
 
         self.size_spinbox = QSpinBox()
         self.size_spinbox.setRange(3, 11)
-        self._map_section.add_row("Size", self.size_spinbox)
-
         self.regenerate_button = QPushButton("Regenerate")
+
+        self._map_section.add_row("Size", self.size_spinbox)
         self._map_section.add_row("", self.regenerate_button)
 
         # Vehicle Settings
@@ -27,14 +27,15 @@ class ControlPanel(QScrollArea):
         self.reset_btn = QPushButton("Reset Vehicle")
         self.change_speed_spinbox = QDoubleSpinBox()
         self.turn_multiplier_spinbox = QSpinBox()
+
         self._vehicle_section.add_row("", self.reset_btn)
         self._vehicle_section.add_row("Change of Speed Rate", self.change_speed_spinbox)
         self._vehicle_section.add_row("Turn Speed Multiplier", self.turn_multiplier_spinbox)
 
         # Agent Settings
         self._agent_section = _Section("Agent")
-        self.training_mode_btn = QCheckBox()
-        self._agent_section.add_row("Training Mode", self.training_mode_btn)
+        self.manual_mode_btn = QCheckBox()
+        self._agent_section.add_row("Manual Mode", self.manual_mode_btn)
 
         self.layout().addWidget(self._map_section)
         self.layout().addWidget(self._vehicle_section)
