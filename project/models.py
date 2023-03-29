@@ -78,15 +78,15 @@ class Vehicle:
         sensor_size = self.width / 6
         sense_angle = math.radians(45)
         self.sensors: list[Sensor] = [
-            Sensor(sensor_x, (self.y + (self.height / 2)) * 0.25, sensor_size, -sense_angle),
-            Sensor(sensor_x, (self.y + (self.height / 2)) * 0.50, sensor_size, 0),
-            Sensor(sensor_x, (self.y + (self.height / 2)) * 0.75, sensor_size, sense_angle),
-            Sensor(self.x, self.y + self.height / 2, sensor_size, math.radians(90)),
+            Sensor(sensor_x, (self.y + (self.height / 2)) * 0.25, sensor_size, -sense_angle),  # Front left
+            Sensor(sensor_x, (self.y + (self.height / 2)) * 0.50, sensor_size, 0),  # Front center
+            Sensor(sensor_x, (self.y + (self.height / 2)) * 0.75, sensor_size, sense_angle),  # Front right
+            Sensor(self.x, self.y + self.height / 2, sensor_size, math.radians(90)),  # Right
             # Sensor(self.x - self.width / 2, (self.y + (self.height / 2)) * 0.66, sensor_size,
             #        -sense_angle + math.radians(180)),
             # Sensor(self.x - self.width / 2, (self.y + (self.height / 2)) * 0.33, sensor_size,
             #        sense_angle + math.radians(180)),
-            Sensor(self.x, self.y - self.height / 2, sensor_size, math.radians(-90)),
+            Sensor(self.x, self.y - self.height / 2, sensor_size, math.radians(-90)),  # Left
         ]
 
         # Recalibrate positions
@@ -123,11 +123,13 @@ class Vehicle:
 
     def set_lspeed(self, speed: float):
         sign = math.copysign(1, speed)
-        self.wheels[0].speed = sign * min(self.max_speed, speed)
+        new_speed = min(self.max_speed, abs(speed))
+        self.wheels[0].speed = sign * new_speed
 
     def set_rspeed(self, speed: float):
         sign = math.copysign(1, speed)
-        self.wheels[1].speed = sign * min(self.max_speed, speed)
+        new_speed = min(self.max_speed, abs(speed))
+        self.wheels[1].speed = sign * new_speed
 
     def change_speed(self, left: float, right: float):
         lspeed = self.lspeed() + left

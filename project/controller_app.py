@@ -1,13 +1,13 @@
 import math
 
-import numpy as np
 from PySide6.QtCore import *
 from PySide6.QtGui import *
 
-from project.agent import NavigatorAgent, squash, desquash
+from project.agent import NavigatorAgent
 from project.enums import *
-from project.map_gen import MapGenerator
+from project.map_gen import MapGenerator, MapTile
 from project.models import Vehicle
+from project.utils import distance_2p
 from project.view_canvas import CanvasView
 from project.view_panel import ControlPanel
 from project.window_main import MainWindow
@@ -26,10 +26,6 @@ class AppController(QObject):
         start_x, start_y = self._calculate_vehicle_start()
         self._vehicle = Vehicle(start_x, start_y, VEHICLE_SIZE, VEHICLE_SIZE, 90)
         self._vehicle.change_speed(1, 1)
-
-        self._current_theta = self._vehicle.theta
-        self._current_lspeed = self._vehicle.lspeed()
-        self._current_rspeed = self._vehicle.rspeed()
         self._dspeed = 0.1
         self._turn_multiplier = 10
         self._dtheta_domain = (-math.pi, math.pi)
@@ -50,7 +46,7 @@ class AppController(QObject):
         self._timer.timeout.connect(self._tick)
         self._is_running: bool = False
 
-        self._agent: NavigatorAgent = NavigatorAgent(len(self._vehicle.sensors), 2, 10, 3)
+        self._agent: NavigatorAgent = NavigatorAgent(self._vehicle, 150)
         self._is_training: bool = False
 
         self._window.key_pressed.connect(self._on_key_pressed)
@@ -63,7 +59,7 @@ class AppController(QObject):
 
     def _tick(self):
         # Find intersection points
-        tiles = self._mapgen.get_tiles()
+        tiles = self._closest_tiles()
         for i, sensor in enumerate(self._vehicle.sensors):
             first_intersected = False
             for j, tile in enumerate(tiles):
@@ -76,35 +72,11 @@ class AppController(QObject):
                             first_intersected = True
                             break
 
-        # Get values from agent OR train agent
-        inputs = np.array([[math.ceil(distance) for _, _, distance in self._intersections.values()]])
-        if self._is_training:
-            dtheta = self._vehicle.theta - self._current_theta
-            if dtheta:
-                self._current_theta = self._vehicle.theta
-
-            dlspeed = self._vehicle.lspeed() - self._current_lspeed
-            drspeed = self._vehicle.rspeed() - self._current_rspeed
-            if dlspeed:
-                self._current_lspeed = self._vehicle.lspeed()
-            if drspeed:
-                self._current_rspeed = self._vehicle.rspeed()
-
-            expected = np.array([
-                squash(dtheta, self._dtheta_domain),
-                squash(dlspeed, self._dspeed_domain),
-                squash(drspeed, self._dspeed_domain)
-            ])
-            losses = self._agent.train(inputs, expected)
-
-        else:
-            out_dtheta, out_lspeed, out_rspeed = self._agent.predict(inputs).tolist()[0]
-            dtheta = desquash(out_dtheta, self._dtheta_domain)
-            lspeed = desquash(out_lspeed, self._dspeed_domain)
-            rspeed = desquash(out_rspeed, self._dspeed_domain)
-            # self._vehicle.theta += dtheta
-            self._vehicle.change_speed(lspeed, rspeed)
-            print(f"dangle={math.degrees(dtheta)} {lspeed=} {rspeed=}")
+        # Determine speed and direction using agent
+        inputs = [distance for _, _, distance in self._intersections.values()]
+        lspeed, rspeed = self._agent.determine(inputs)
+        self._vehicle.set_lspeed(lspeed)
+        self._vehicle.set_rspeed(rspeed)
 
         # Move vehicle and recreate canvas
         self._vehicle.move()
@@ -183,3 +155,12 @@ class AppController(QObject):
         x = first_tile.x + (first_tile.size / 2)
         y = 0 + (VEHICLE_SIZE / 2)
         return x, y
+
+    def _closest_tiles(self):
+        def _distance(tile: MapTile):
+            tile_center = tile.x + (tile.size / 2), tile.y + (tile.size / 2)
+            return distance_2p(tile_center, (self._vehicle.x, self._vehicle.y))
+
+        tiles = self._mapgen.get_tiles()
+        closest = sorted(tiles, key=_distance)
+        return closest
