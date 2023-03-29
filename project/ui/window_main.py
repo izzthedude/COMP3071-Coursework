@@ -2,7 +2,7 @@ from PySide6.QtCore import *
 from PySide6.QtGui import *
 from PySide6.QtWidgets import *
 
-from project.view_panel import ControlPanel
+from project.ui.view_panel import ControlPanel
 
 
 class MainWindow(QMainWindow):

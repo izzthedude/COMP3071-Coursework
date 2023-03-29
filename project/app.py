@@ -1,7 +1,7 @@
 from PySide6.QtWidgets import *
 
-from project.controller_app import AppController
-from project.window_main import MainWindow
+from project.ui.controller_app import AppController
+from project.ui.window_main import MainWindow
 
 
 class App(QApplication):

@@ -7,10 +7,10 @@ from project.agent import NavigatorAgent
 from project.enums import *
 from project.map_gen import MapGenerator, MapTile
 from project.models import Vehicle
+from project.ui.view_canvas import CanvasView
+from project.ui.view_panel import ControlPanel
+from project.ui.window_main import MainWindow
 from project.utils import distance_2p
-from project.view_canvas import CanvasView
-from project.view_panel import ControlPanel
-from project.window_main import MainWindow
 
 
 class AppController(QObject):
