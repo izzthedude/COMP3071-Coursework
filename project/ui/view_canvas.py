@@ -15,32 +15,32 @@ class CanvasView(QWidget):
         super().__init__(parent)
 
         self.setFixedSize(CANVAS_SIZE, CANVAS_SIZE)
-        self._tiles: list[MapTile] = mapgen.get_tiles()
-        self._vehicle: Vehicle = vehicle
-        self._intersections: list[tuple[float, float, float]] = intersections
-        self._is_running: bool = is_running
+        self.tiles: list[MapTile] = mapgen.get_tiles()
+        self.vehicle: Vehicle = vehicle
+        self.intersections: list[tuple[float, float, float]] = intersections
+        self.is_running: bool = is_running
 
     def paintEvent(self, event):
         p = QPainter(self)
 
         # Draw tiles
-        for tile in self._tiles:
+        for tile in self.tiles:
             self._draw_tile(tile, p)
 
         # Draw vehicle's main body
-        p.translate(self._vehicle.x, self._vehicle.y)
-        p.rotate(math.degrees(self._vehicle.theta))
+        p.translate(self.vehicle.x, self.vehicle.y)
+        p.rotate(math.degrees(self.vehicle.theta))
         p.fillRect(
-            0 - self._vehicle.width / 2,
-            0 - self._vehicle.height / 2,
-            self._vehicle.width,
-            self._vehicle.height,
+            0 - self.vehicle.width / 2,
+            0 - self.vehicle.height / 2,
+            self.vehicle.width,
+            self.vehicle.height,
             "blue"
         )
         p.resetTransform()
 
         # Draw wheels
-        for wheel in self._vehicle.wheels:
+        for wheel in self.vehicle.wheels:
             self._draw_wheel(wheel, p)
             p.resetTransform()
 
@@ -49,7 +49,7 @@ class CanvasView(QWidget):
         brush.setStyle(Qt.BrushStyle.SolidPattern)
         brush.setColor("yellow")
         p.setBrush(brush)
-        for sensor in self._vehicle.sensors:
+        for sensor in self.vehicle.sensors:
             self._draw_sensor(sensor, p)
             p.resetTransform()
 
@@ -57,7 +57,7 @@ class CanvasView(QWidget):
         self._draw_topleft_info(p)
 
         # Draw intersections info
-        self._draw_topright_info(p, self._intersections)
+        self._draw_topright_info(p, self.intersections)
 
     def _draw_tile(self, tile: MapTile, painter: QPainter):
         for border in tile.borders:
@@ -74,7 +74,7 @@ class CanvasView(QWidget):
 
     def _draw_wheel(self, wheel: Wheel, painter: QPainter):
         painter.translate(wheel.x, wheel.y)
-        painter.rotate(math.degrees(self._vehicle.theta) + 90)
+        painter.rotate(math.degrees(self.vehicle.theta) + 90)
         painter.fillRect(
             0 - wheel.width / 2,
             0 - wheel.height / 2,
@@ -89,7 +89,7 @@ class CanvasView(QWidget):
         painter.setOpacity(0.4)
         line = QLineF()
         line.setP1(QPointF(*sensor.line_start()))
-        line.setP2(QPointF(*sensor.line_end(self._vehicle.theta)))
+        line.setP2(QPointF(*sensor.line_end(self.vehicle.theta)))
         painter.drawLine(line)
         painter.setOpacity(1)
 
@@ -109,7 +109,7 @@ class CanvasView(QWidget):
         font.setBold(True)
         painter.setFont(font)
 
-        is_running = "(RUNNING)" if self._is_running else "(STOPPED)"
+        is_running = "(RUNNING)" if self.is_running else "(STOPPED)"
         font_height = QFontMetrics(font).height()
         x, y = 0, font_height
         painter.drawText(x, y, f"Press SPACE to start/stop the timer {is_running}")
@@ -118,12 +118,12 @@ class CanvasView(QWidget):
 
         # Draw vehicle info
         info = {
-            "x": f"{self._vehicle.x:.2f}",
-            "y": f"{self._vehicle.y:.2f}",
-            "angle": f"{math.degrees(self._vehicle.theta):.2f} | {self._vehicle.theta: .4f}",
-            "vl": f"{self._vehicle.lspeed(): .2f}",
-            "vr": f"{self._vehicle.rspeed():.2f}",
-            "speed": f"{self._vehicle.speed():.2f}"
+            "x": f"{self.vehicle.x:.2f}",
+            "y": f"{self.vehicle.y:.2f}",
+            "angle": f"{math.degrees(self.vehicle.theta):.2f} | {self.vehicle.theta: .4f}",
+            "vl": f"{self.vehicle.lspeed(): .2f}",
+            "vr": f"{self.vehicle.rspeed():.2f}",
+            "speed": f"{self.vehicle.speed():.2f}"
         }
         font_height = QFontMetrics(painter.font()).height()
         for key, value in info.items():
