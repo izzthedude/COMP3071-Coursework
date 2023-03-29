@@ -2,7 +2,7 @@ from PySide6.QtCore import *
 from PySide6.QtWidgets import *
 
 
-class ControlPanel(QScrollArea):
+class Panel(QScrollArea):
     def __init__(self, parent: QObject = None):
         super().__init__(parent)
         self.setFixedSize(300, 1000)

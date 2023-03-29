@@ -2,7 +2,7 @@ from PySide6.QtCore import *
 from PySide6.QtGui import *
 from PySide6.QtWidgets import *
 
-from project.ui.view_panel import ControlPanel
+from project.ui.panel import Panel
 
 
 class MainWindow(QMainWindow):
@@ -14,7 +14,7 @@ class MainWindow(QMainWindow):
         self._setup_layout()
         self.setWindowTitle("Navigator")
 
-        self.panel = ControlPanel()
+        self.panel = Panel()
         self._content_box_layout.addWidget(self.panel)
 
         self.installEventFilter(self)

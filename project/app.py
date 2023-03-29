@@ -1,8 +1,8 @@
 from PySide6.QtWidgets import *
 
 from project.environment import Environment
-from project.ui.controller_app import AppController
-from project.ui.window_main import MainWindow
+from project.ui.controller import AppController
+from project.ui.window import MainWindow
 
 
 class App(QApplication):

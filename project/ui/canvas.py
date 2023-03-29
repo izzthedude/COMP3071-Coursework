@@ -9,7 +9,7 @@ from project.map_gen import MapTile, MapGenerator
 from project.models import Vehicle, Wheel, Sensor
 
 
-class CanvasView(QWidget):
+class Canvas(QWidget):
     def __init__(self, mapgen: MapGenerator, vehicle: Vehicle, intersections: list, is_running: bool,
                  parent: QObject = None):
         super().__init__(parent)

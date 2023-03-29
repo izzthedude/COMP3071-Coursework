@@ -4,16 +4,16 @@ from PySide6.QtGui import *
 from project.agent import NavigatorAgent
 from project.enums import *
 from project.environment import Environment
-from project.ui.view_canvas import CanvasView
-from project.ui.view_panel import ControlPanel
-from project.ui.window_main import MainWindow
+from project.ui.canvas import Canvas
+from project.ui.panel import Panel
+from project.ui.window import MainWindow
 
 
 class AppController(QObject):
     def __init__(self, environment: Environment, window: MainWindow, parent: QObject = None):
         super().__init__(parent)
         self._window: MainWindow = window
-        self._panel: ControlPanel = self._window.panel
+        self._panel: Panel = self._window.panel
 
         self._environment = environment
         self._mapgen = environment.mapgen
@@ -23,8 +23,8 @@ class AppController(QObject):
         self._intersections: dict = environment.intersections
         self._is_running: bool = False
 
-        self._canvas: CanvasView = CanvasView(self._mapgen, self._vehicle, list(self._intersections.values()),
-                                              self._is_running)
+        self._canvas: Canvas = Canvas(self._mapgen, self._vehicle, list(self._intersections.values()),
+                                      self._is_running)
         self._timer: QTimer = QTimer(self)
 
         self._window.centralWidget().layout().addWidget(self._canvas)
