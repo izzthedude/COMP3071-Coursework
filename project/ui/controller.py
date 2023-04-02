@@ -23,8 +23,7 @@ class AppController(QObject):
         self._intersections: dict = environment.intersections
         self._is_running: bool = False
 
-        self._canvas: Canvas = Canvas(self._mapgen, self._vehicle, list(self._intersections.values()),
-                                      self._is_running)
+        self._canvas: Canvas = Canvas(self._mapgen, self._vehicle, self._is_running)
         self._timer: QTimer = QTimer(self)
 
         self._window.centralWidget().layout().addWidget(self._canvas)
@@ -44,6 +43,8 @@ class AppController(QObject):
         self._panel.turn_multiplier_spinbox.valueChanged.connect(self._on_turn_multiplier_changed)
         self._panel.manual_mode_btn.stateChanged.connect(self._on_manual_mode_changed)
         self._timer.timeout.connect(self._tick)
+
+        self._update_canvas()
 
     def _tick(self):
         self._environment.tick()
@@ -103,5 +104,6 @@ class AppController(QObject):
     def _update_canvas(self):
         self._canvas.tiles = self._mapgen.get_tiles()
         self._canvas.intersections = list(self._intersections.values())
+        self._canvas.collision = self._environment.collision
         self._canvas.is_running = self._is_running
         self._canvas.update()

@@ -18,29 +18,14 @@ class Environment:
         self.agent: NavigatorAgent = NavigatorAgent(self.vehicle, 150)
         self.is_manual: bool = False
 
-        self.intersections: dict = {sensor: (0.0, 0.0, 0.0) for sensor in self.vehicle.sensors}
+        self.collision = None
+        self.intersections: dict = {}
+        self._find_sensor_intersections()
 
     def tick(self):
         # Find collision and intersection points
-        collision = None
-        tiles = self._closest_tiles()
-        for i, sensor in enumerate(self.vehicle.sensors):
-            if collision:
-                break
-            first_intersected = False
-            for j, tile in enumerate(tiles):
-                if first_intersected or collision:
-                    break
-                for k, border in enumerate(tile.borders):
-                    if border is not None:
-                        collision = self.vehicle.collides(border)
-                        if collision:
-                            break
-
-                        if tile_intersects := sensor.intersects(border, self.vehicle.theta):
-                            self.intersections[sensor] = tile_intersects
-                            first_intersected = True
-                            break
+        self.collision = None
+        self._find_sensor_intersections()
 
         # Determine speed and direction using agent
         if not self.is_manual:
@@ -59,6 +44,7 @@ class Environment:
     def on_reset(self):
         self.vehicle.x, self.vehicle.y = self._calculate_vehicle_start()
         self.vehicle.reset()
+        self._find_sensor_intersections()
 
     def on_regenerate(self):
         self.mapgen.regenerate()
@@ -87,3 +73,22 @@ class Environment:
         tiles = self.mapgen.get_tiles()
         closest = sorted(tiles, key=distance)
         return closest
+
+    def _find_sensor_intersections(self):
+        tiles = self._closest_tiles()
+        for i, sensor in enumerate(self.vehicle.sensors):
+            first_intersected = False
+            for j, tile in enumerate(tiles):
+                if first_intersected:
+                    break
+                for k, border in enumerate(tile.borders):
+                    if border is not None:
+                        if not self.collision:
+                            self.collision = self.vehicle.collides(border)
+
+                        if tile_intersects := sensor.intersects(border, self.vehicle.theta):
+                            self.intersections[sensor] = tile_intersects
+                            first_intersected = True
+                            break
+                        else:
+                            self.intersections[sensor] = (*sensor.line_end(self.vehicle.theta), sensor.sense_length)

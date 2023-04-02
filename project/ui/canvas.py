@@ -10,14 +10,15 @@ from project.models import Vehicle, Wheel, Sensor
 
 
 class Canvas(QWidget):
-    def __init__(self, mapgen: MapGenerator, vehicle: Vehicle, intersections: list, is_running: bool,
+    def __init__(self, mapgen: MapGenerator, vehicle: Vehicle, is_running: bool,
                  parent: QObject = None):
         super().__init__(parent)
 
         self.setFixedSize(CANVAS_SIZE, CANVAS_SIZE)
         self.tiles: list[MapTile] = mapgen.get_tiles()
         self.vehicle: Vehicle = vehicle
-        self.intersections: list[tuple[float, float, float]] = intersections
+        self.intersections: list[tuple[float, float, float]] = []
+        self.collision: tuple[float, float] | None = None
         self.is_running: bool = is_running
 
     def paintEvent(self, event):
@@ -44,20 +45,34 @@ class Canvas(QWidget):
             self._draw_wheel(wheel, p)
             p.resetTransform()
 
+        # Draw sensor lines
+        p.save()
+        for i in range(len(self.vehicle.sensors)):
+            length = self.vehicle.sensors[i].sense_length
+            if self.intersections and self.intersections[i]:
+                _, _, length = self.intersections[i]
+            self._draw_sensor_line(self.vehicle.sensors[i], length, p)
+        p.restore()
+
         # Draw sensors
-        brush = QBrush()
-        brush.setStyle(Qt.BrushStyle.SolidPattern)
-        brush.setColor("yellow")
-        p.setBrush(brush)
+        p.save()
         for sensor in self.vehicle.sensors:
             self._draw_sensor(sensor, p)
             p.resetTransform()
+        p.restore()
 
-        # Draw vehicle info
+        # Draw collision
+        if self.collision:
+            p.save()
+            p.setPen("red")
+            size = 10
+            x, y = self.collision[0] - size / 2, self.collision[1] - size / 2
+            p.drawEllipse(x, y, size, size)
+            p.restore()
+
+        # Draw info
         self._draw_topleft_info(p)
-
-        # Draw intersections info
-        self._draw_topright_info(p, self.intersections)
+        self._draw_topright_info(p)
 
     def _draw_tile(self, tile: MapTile, painter: QPainter):
         for border in tile.borders:
@@ -83,15 +98,23 @@ class Canvas(QWidget):
             "black"
         )
 
-    def _draw_sensor(self, sensor: Sensor, painter: QPainter):
+    def _draw_sensor_line(self, sensor: Sensor, length: float, painter: QPainter):
         # Draw sensor lines
         painter.setPen("red")
         painter.setOpacity(0.4)
+
         line = QLineF()
         line.setP1(QPointF(*sensor.line_start()))
-        line.setP2(QPointF(*sensor.line_end(self.vehicle.theta)))
+        line.setAngle(math.degrees(-self.vehicle.theta - sensor.sense_angle))
+        line.setLength(length)
         painter.drawLine(line)
         painter.setOpacity(1)
+
+    def _draw_sensor(self, sensor: Sensor, painter: QPainter):
+        brush = QBrush()
+        brush.setStyle(Qt.BrushStyle.SolidPattern)
+        brush.setColor("yellow")
+        painter.setBrush(brush)
 
         # Draw sensor
         painter.setPen("black")
@@ -130,7 +153,7 @@ class Canvas(QWidget):
             painter.drawText(x, y, f"{key}: {value}")
             y += font_height
 
-    def _draw_topright_info(self, painter: QPainter, intersections: list):
+    def _draw_topright_info(self, painter: QPainter):
         font_height = QFontMetrics(painter.font()).height()
         x, y = 750, font_height
 
@@ -143,7 +166,7 @@ class Canvas(QWidget):
         painter.restore()
 
         y += font_height
-        for i, info in enumerate(intersections):
+        for i, info in enumerate(self.intersections):
             text = "-"
             if info:
                 ix, iy, distance = info
