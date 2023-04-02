@@ -71,8 +71,12 @@ class Canvas(QWidget):
             p.restore()
 
         # Draw info
-        self._draw_topleft_info(p)
-        self._draw_topright_info(p)
+        is_running = "(RUNNING)" if self.is_running else "(STOPPED)"
+        topleft_texts = [
+            f"vl: {self.vehicle.lspeed():.2f}",
+            f"vr: {self.vehicle.rspeed():.2f}"
+        ]
+        self._draw_text_section(0, 0, f"Press SPACE to start/stop the timer {is_running}", topleft_texts, p)
 
     def _draw_tile(self, tile: MapTile, painter: QPainter):
         for border in tile.borders:
@@ -125,51 +129,19 @@ class Canvas(QWidget):
             sensor.size
         )
 
-    def _draw_topleft_info(self, painter: QPainter):
-        # Draw start/stop instruction
-        painter.save()
-        font = painter.font()
-        font.setBold(True)
-        painter.setFont(font)
-
-        is_running = "(RUNNING)" if self.is_running else "(STOPPED)"
-        font_height = QFontMetrics(font).height()
-        x, y = 0, font_height
-        painter.drawText(x, y, f"Press SPACE to start/stop the timer {is_running}")
-        painter.restore()
-        y += font_height
-
-        # Draw vehicle info
-        info = {
-            "x": f"{self.vehicle.x:.2f}",
-            "y": f"{self.vehicle.y:.2f}",
-            "angle": f"{math.degrees(self.vehicle.theta):.2f} | {self.vehicle.theta: .4f}",
-            "vl": f"{self.vehicle.lspeed(): .2f}",
-            "vr": f"{self.vehicle.rspeed():.2f}",
-            "speed": f"{self.vehicle.speed():.2f}"
-        }
+    def _draw_text_section(self, x: float, y: float, title: str, text_rows: list[str], painter: QPainter):
         font_height = QFontMetrics(painter.font()).height()
-        for key, value in info.items():
-            painter.drawText(x, y, f"{key}: {value}")
+
+        if title:
             y += font_height
-
-    def _draw_topright_info(self, painter: QPainter):
-        font_height = QFontMetrics(painter.font()).height()
-        x, y = 750, font_height
-
-        # Draw title
-        painter.save()
-        font = painter.font()
-        font.setBold(True)
-        painter.setFont(font)
-        painter.drawText(x, y, "Sensors Intersections (x, y, distance)")
-        painter.restore()
+            painter.save()
+            font = painter.font()
+            font.setBold(True)
+            painter.setFont(font)
+            painter.drawText(x, y, title)
+            painter.restore()
 
         y += font_height
-        for i, info in enumerate(self.intersections):
-            text = "-"
-            if info:
-                ix, iy, distance = info
-                text = f"({ix:.2f},{iy:.2f},{distance:.2f})"
-            painter.drawText(x, y, f"Sensor {i + 1}: {text}")
+        for text in text_rows:
+            painter.drawText(x, y, text)
             y += font_height
