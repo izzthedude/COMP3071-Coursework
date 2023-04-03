@@ -12,8 +12,8 @@ class Environment:
 
         start_x, start_y = self._calculate_vehicle_start()
         self.vehicle = Vehicle(start_x, start_y, VEHICLE_SIZE, VEHICLE_SIZE, 90)
-        self.dspeed = 0.1
-        self.turn_multiplier = 10
+        self.manual_dspeed_rate = 0.1
+        self.manual_turn_dangle = 1
 
         self.agent: NavigatorAgent = NavigatorAgent(self.vehicle, 150)
         self.is_manual: bool = False
@@ -30,9 +30,9 @@ class Environment:
         # Determine speed and direction using agent
         if not self.is_manual:
             inputs = [distance for _, _, distance in self.intersections.values()]
-            lspeed, rspeed = self.agent.determine(inputs)
-            self.vehicle.set_lspeed(lspeed)
-            self.vehicle.set_rspeed(rspeed)
+            dangle, dspeed = self.agent.determine(inputs)
+            self.vehicle.theta += dangle
+            self.vehicle.change_speed(dspeed)
 
         # Move vehicle and recreate canvas
         self.vehicle.move()
@@ -51,10 +51,10 @@ class Environment:
         self.on_reset()
 
     def on_dspeed_changed(self, value: float):
-        self.dspeed = value
+        self.manual_dspeed_rate = value
 
     def on_turn_multiplier_changed(self, value: float):
-        self.turn_multiplier = value
+        self.manual_turn_dangle = value
 
     def on_manual_mode_changed(self, state: bool):
         self.is_manual = bool(state)

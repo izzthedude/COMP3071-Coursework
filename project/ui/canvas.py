@@ -73,8 +73,8 @@ class Canvas(QWidget):
         # Draw info
         is_running = "(RUNNING)" if self.is_running else "(STOPPED)"
         topleft_texts = [
-            f"vl: {self.vehicle.lspeed():.2f}",
-            f"vr: {self.vehicle.rspeed():.2f}"
+            f"angle: {math.degrees(self.vehicle.theta):.2f}",
+            f"speed: {self.vehicle.speed():.2f}"
         ]
         self._draw_text_section(0, 0, f"Press SPACE to start/stop the timer {is_running}", topleft_texts, p)
 

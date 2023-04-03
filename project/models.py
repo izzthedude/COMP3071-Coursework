@@ -99,31 +99,21 @@ class Vehicle:
         self._recalculate_parts()
 
     def speed(self):
-        return self.lspeed() + self.rspeed()
+        return self.wheels[0].speed + self.wheels[1].speed
 
-    def lspeed(self):
-        return self.wheels[0].speed
+    def set_speed(self, speed: float):
+        half = speed / 2
+        self._set_speed_helper(self.wheels[0], half)
+        self._set_speed_helper(self.wheels[1], half)
 
-    def rspeed(self):
-        return self.wheels[1].speed
-
-    def set_lspeed(self, speed: float):
-        self._set_speed_helper(self.wheels[0], speed)
-
-    def set_rspeed(self, speed: float):
-        self._set_speed_helper(self.wheels[1], speed)
-
-    def change_speed(self, left: float, right: float):
-        lspeed = self.lspeed() + left
-        rspeed = self.rspeed() + right
-
-        self.set_lspeed(lspeed)
-        self.set_rspeed(rspeed)
+    def change_speed(self, change: float):
+        half = change / 2
+        self._set_speed_helper(self.wheels[0], self.wheels[0].speed + half)
+        self._set_speed_helper(self.wheels[1], self.wheels[1].speed + half)
 
     def reset(self):
         self.theta = math.radians(90)
-        self.set_lspeed(0)
-        self.set_rspeed(0)
+        self.set_speed(0)
         self._recalculate_parts()
 
     def borders(self):
@@ -183,5 +173,5 @@ class Vehicle:
 
     def _set_speed_helper(self, wheel: Wheel, speed: float):
         sign = math.copysign(1, speed)
-        new_speed = min(self.max_speed, abs(speed))
+        new_speed = min(self.max_speed / 2, abs(speed))
         wheel.speed = sign * new_speed

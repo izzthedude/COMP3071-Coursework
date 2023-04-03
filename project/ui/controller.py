@@ -1,3 +1,5 @@
+import math
+
 from PySide6.QtCore import *
 from PySide6.QtGui import *
 
@@ -31,17 +33,17 @@ class AppController(QObject):
         self._panel.size_spinbox.setValue(self._mapgen.get_map_size())
         self._panel.change_speed_spinbox.setRange(0.1, 2.0)
         self._panel.change_speed_spinbox.setSingleStep(0.05)
-        self._panel.change_speed_spinbox.setValue(self._environment.dspeed)
-        self._panel.turn_multiplier_spinbox.setRange(1, 20)
-        self._panel.turn_multiplier_spinbox.setSingleStep(1)
-        self._panel.turn_multiplier_spinbox.setValue(self._environment.turn_multiplier)
+        self._panel.change_speed_spinbox.setValue(self._environment.manual_dspeed_rate)
+        self._panel.turn_dangle_spinbox.setRange(0.1, 5.0)
+        self._panel.turn_dangle_spinbox.setSingleStep(0.1)
+        self._panel.turn_dangle_spinbox.setValue(self._environment.manual_turn_dangle)
 
         self._window.key_pressed.connect(self._on_key_pressed)
         self._panel.reset_btn.clicked.connect(self._on_reset)
         self._panel.size_spinbox.valueChanged.connect(self._on_size_changed)
         self._panel.regenerate_button.clicked.connect(self._on_regenerate)
-        self._panel.change_speed_spinbox.valueChanged.connect(self._on_dspeed_changed)
-        self._panel.turn_multiplier_spinbox.valueChanged.connect(self._on_turn_multiplier_changed)
+        self._panel.change_speed_spinbox.valueChanged.connect(self._on_dspeed_rate_changed)
+        self._panel.turn_dangle_spinbox.valueChanged.connect(self._on_turn_dangle_changed)
         self._panel.manual_mode_btn.stateChanged.connect(self._on_manual_mode_changed)
         self._timer.timeout.connect(self._tick)
         self._canvas_updater.timeout.connect(self._update_canvas)
@@ -61,23 +63,19 @@ class AppController(QObject):
             self._is_running = not self._is_running
 
         if code == Qt.Key.Key_W and event_type == QEvent.KeyPress:
-            self._vehicle.change_speed(self._environment.dspeed / 2, self._environment.dspeed / 2)
+            self._vehicle.change_speed(self._environment.manual_dspeed_rate)
 
         if code == Qt.Key.Key_S and event_type == QEvent.KeyPress:
-            self._vehicle.change_speed(-self._environment.dspeed / 2, -self._environment.dspeed / 2)
+            self._vehicle.change_speed(-self._environment.manual_dspeed_rate)
 
-        turn_speed = self._environment.dspeed * self._environment.turn_multiplier
+        turn_speed = self._environment.manual_dspeed_rate * self._environment.manual_turn_dangle
         if code == Qt.Key.Key_A:
             if event_type == QEvent.KeyPress:
-                self._vehicle.change_speed(-turn_speed, turn_speed)
-            elif event_type == QEvent.KeyRelease:
-                self._vehicle.change_speed(turn_speed, -turn_speed)
+                self._vehicle.theta -= math.radians(self._environment.manual_turn_dangle)
 
         if code == Qt.Key.Key_D:
             if event_type == QEvent.KeyPress:
-                self._vehicle.change_speed(turn_speed, -turn_speed)
-            elif event_type == QEvent.KeyRelease:
-                self._vehicle.change_speed(-turn_speed, turn_speed)
+                self._vehicle.theta += math.radians(self._environment.manual_turn_dangle)
 
     def _on_size_changed(self, value: int):
         self._environment.on_size_changed(value)
@@ -88,11 +86,11 @@ class AppController(QObject):
     def _on_regenerate(self):
         self._environment.on_regenerate()
 
-    def _on_dspeed_changed(self, value: float):
-        self._environment.dspeed = value
+    def _on_dspeed_rate_changed(self, value: float):
+        self._environment.manual_dspeed_rate = value
 
-    def _on_turn_multiplier_changed(self, value: float):
-        self._environment.turn_multiplier = value
+    def _on_turn_dangle_changed(self, value: float):
+        self._environment.manual_turn_dangle = value
 
     def _on_manual_mode_changed(self, state: bool):
         self._environment.is_manual = bool(state)

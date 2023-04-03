@@ -26,11 +26,11 @@ class Panel(QScrollArea):
         self._vehicle_section = _Section("Vehicle")
         self.reset_btn = QPushButton("Reset Vehicle")
         self.change_speed_spinbox = QDoubleSpinBox()
-        self.turn_multiplier_spinbox = QSpinBox()
+        self.turn_dangle_spinbox = QDoubleSpinBox()
 
         self._vehicle_section.add_row("", self.reset_btn)
         self._vehicle_section.add_row("Change of Speed Rate", self.change_speed_spinbox)
-        self._vehicle_section.add_row("Turn Speed Multiplier", self.turn_multiplier_spinbox)
+        self._vehicle_section.add_row("Turn Angle", self.turn_dangle_spinbox)
 
         # Agent Settings
         self._agent_section = _Section("Agent")
