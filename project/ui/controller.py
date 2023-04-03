@@ -25,6 +25,7 @@ class AppController(QObject):
 
         self._canvas: Canvas = Canvas(self._mapgen, self._vehicle, self._is_running)
         self._timer: QTimer = QTimer(self)
+        self._canvas_updater: QTimer = QTimer(self)  # The 'renderer' timer: happens on a different thread/timer.
 
         self._window.centralWidget().layout().addWidget(self._canvas)
         self._panel.size_spinbox.setValue(self._mapgen.get_map_size())
@@ -43,12 +44,11 @@ class AppController(QObject):
         self._panel.turn_multiplier_spinbox.valueChanged.connect(self._on_turn_multiplier_changed)
         self._panel.manual_mode_btn.stateChanged.connect(self._on_manual_mode_changed)
         self._timer.timeout.connect(self._tick)
-
-        self._update_canvas()
+        self._canvas_updater.timeout.connect(self._update_canvas)
+        self._canvas_updater.start(1000 / 30)  # Canvas updates per second, adjust the denominator to the desired FPS.
 
     def _tick(self):
         self._environment.tick()
-        self._update_canvas()
 
     def _on_key_pressed(self, event: QKeyEvent, code: int):
         event_type = event.type()
@@ -79,18 +79,14 @@ class AppController(QObject):
             elif event_type == QEvent.KeyRelease:
                 self._vehicle.change_speed(-turn_speed, turn_speed)
 
-        self._update_canvas()
-
     def _on_size_changed(self, value: int):
         self._environment.on_size_changed(value)
 
     def _on_reset(self):
         self._environment.on_reset()
-        self._update_canvas()
 
     def _on_regenerate(self):
         self._environment.on_regenerate()
-        self._update_canvas()
 
     def _on_dspeed_changed(self, value: float):
         self._environment.dspeed = value
