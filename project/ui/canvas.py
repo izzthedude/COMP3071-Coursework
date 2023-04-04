@@ -19,6 +19,7 @@ class Canvas(QWidget):
         self.tiles: list[MapTile] = mapgen.get_tiles()
         self.vehicles: dict[Vehicle, VehicleData] = vehicles
         self.is_running: bool = is_running
+        self.generation: int = 0
 
     def paintEvent(self, event):
         p = QPainter(self)
@@ -101,7 +102,10 @@ class Canvas(QWidget):
 
         # Draw info
         is_running = "(RUNNING)" if self.is_running else "(STOPPED)"
-        self._draw_text_section(0, 0, f"Press SPACE to start/stop the timer {is_running}", [], p)
+        info = [
+            f"Generation: {self.generation}"
+        ]
+        self._draw_text_section(0, 0, f"Press SPACE to start/stop the timer {is_running}", info, p)
 
     def _draw_tile(self, tile: MapTile, painter: QPainter):
         for border in tile.borders:

@@ -1,5 +1,7 @@
+import math
 from dataclasses import dataclass
 
+from project.agent import NavigatorAgent, GeneticAlgorithm as GA
 from project.enums import *
 from project.map_gen import MapGenerator, MapTile, Direction
 from project.models import Vehicle
@@ -20,7 +22,7 @@ class VehicleData:
 
 class Environment:
     def __init__(self):
-        size = 7
+        size = 5
         self.mapgen = MapGenerator(CANVAS_SIZE // size, size)
 
         start_x, start_y = self._calculate_vehicle_start()
@@ -28,19 +30,17 @@ class Environment:
         self.vehicle_datas: dict[Vehicle, VehicleData] = {
             vehicle: VehicleData(*self._find_sensor_intersections(vehicle)) for vehicle in self.vehicles
         }
+        self.vehicle_agents: dict[Vehicle, NavigatorAgent] = {
+            vehicle: NavigatorAgent(6, 2, 5, 2) for vehicle in self.vehicles
+        }
 
         self._all_collided: bool = False
         self._any_finished: bool = False
+        self.generation: int = 0
 
     def tick(self):
-        self._any_finished = any(data.is_finished for data in self.vehicle_datas.values())
-        self._all_collided = all(data.collision for data in self.vehicle_datas.values())
-        if self._any_finished or self._all_collided:
-            self.on_reset()
-
         first_tile = self.mapgen.get_tiles()[0]
         last_tile = self.mapgen.get_tiles()[-1]
-
         for vehicle in self.vehicles:
             data = self.vehicle_datas[vehicle]
             if not data.collision and not data.is_finished:  # Only calculate for a vehicle that hasn't collided and hasn't finished
@@ -57,6 +57,28 @@ class Environment:
                     data.is_finished = vehicle.y >= y1 and x1 <= vehicle.x <= x2
                 elif last_tile.to_direction == Direction.LEFT:
                     data.is_finished = vehicle.x <= x1 and y1 <= vehicle.y <= y2
+
+                inputs = [distance for _, _, distance in data.intersections] + [vehicle.speed()]
+                dangle, dspeed = self.vehicle_agents[vehicle].predict(inputs)
+                vehicle.theta += math.radians(dangle)
+                vehicle.change_speed(dspeed)
+
+        self._any_finished = any(data.is_finished for data in self.vehicle_datas.values())
+        self._all_collided = all(bool(data.collision) for data in self.vehicle_datas.values())
+        if self._any_finished or self._all_collided:
+            self.on_generation_end()
+            self.on_reset()
+
+    def on_generation_end(self):
+        population = [GA.weights_to_genome(self.vehicle_agents[vehicle]) for vehicle in self.vehicles]
+        distances = [self.vehicle_datas[vehicle].distance for vehicle in self.vehicles]
+
+        next_generation = GA.next_generation(population, distances)
+        for vehicle, genome in zip(self.vehicles, next_generation):
+            agent = self.vehicle_agents[vehicle]
+            agent.weights = GA.genome_to_weights(agent, genome)
+
+        self.generation += 1
 
     def on_size_changed(self, value: int):
         self.mapgen.set_map_size(value)
@@ -79,7 +101,7 @@ class Environment:
     def _calculate_vehicle_start(self):
         first_tile = self.mapgen.get_tiles()[0]
         x = first_tile.x + (first_tile.size / 2)
-        y = VEHICLE_SIZE / 2 + 5
+        y = VEHICLE_SIZE / 2 + 10
         return x, y
 
     def _closest_tiles(self, vehicle: Vehicle):
@@ -111,3 +133,4 @@ class Environment:
                             intersections[sensor] = (*sensor.line_end(vehicle.theta), sensor.sense_length)
 
         return list(intersections.values()), collision
+

@@ -50,6 +50,10 @@ class AppController(QObject):
                 self._timer.start(TICK_MS)
             self._is_running = not self._is_running
 
+        if code == Qt.Key.Key_Return and event_type == QEvent.KeyPress:
+            self._environment.on_generation_end()
+            self._environment.on_reset()
+
     def _on_size_changed(self, value: int):
         self._environment.on_size_changed(value)
 
@@ -62,4 +66,5 @@ class AppController(QObject):
     def _update_canvas(self):
         self._canvas.tiles = self._mapgen.get_tiles()
         self._canvas.is_running = self._is_running
+        self._canvas.generation = self._environment.generation
         self._canvas.update()
