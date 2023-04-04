@@ -12,23 +12,42 @@ class Panel(QScrollArea):
         layout.setAlignment(Qt.AlignTop)
         self.setLayout(layout)
 
-        # Map Generation Settings
-        self._map_section = _Section("Map Generation Settings")
+        # General Settings
+        self._general_section = _Section("General")
+        self.update_interval_spinbox = QSpinBox()
+        self.auto_reset_checkbox = QCheckBox()
 
+        self._general_section.add_row("Update Interval (ms)", self.update_interval_spinbox)
+        self._general_section.add_row("Auto Reset", self.auto_reset_checkbox)
+
+        # Map Generation Settings
+        self._map_section = _Section("Map Generation")
         self.size_spinbox = QSpinBox()
-        self.size_spinbox.setRange(3, 11)
-        self.regenerate_button = QPushButton("Regenerate")
+        self.regenerate_button = QPushButton("Regenerate Map")
 
         self._map_section.add_row("Size", self.size_spinbox)
         self._map_section.add_row("", self.regenerate_button)
 
         # Vehicle Settings
         self._vehicle_section = _Section("Vehicle")
-        self.reset_btn = QPushButton("Reset Vehicle")
-        self._vehicle_section.add_row("", self.reset_btn)
+        self.vehicle_reset_btn = QPushButton("Reset Vehicle")
 
+        self._vehicle_section.add_row("", self.vehicle_reset_btn)
+
+        # Agent Settings
+        self._agent_section = _Section("Agent")
+        self.learning_mode_checkbox = QCheckBox()
+        self.save_best_btn = QPushButton("Save Best Model")
+        self.load_model_btn = QPushButton("Load Model")
+
+        self._agent_section.add_row("Learning Mode", self.learning_mode_checkbox)
+        self._agent_section.add_row("", self.save_best_btn)
+        self._agent_section.add_row("", self.load_model_btn)
+
+        self.layout().addWidget(self._general_section)
         self.layout().addWidget(self._map_section)
         self.layout().addWidget(self._vehicle_section)
+        self.layout().addWidget(self._agent_section)
 
 
 class _Section(QWidget):

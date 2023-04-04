@@ -34,6 +34,9 @@ class Environment:
             vehicle: NavigatorAgent(6, 2, 5, 2) for vehicle in self.vehicles
         }
 
+        self.auto_reset: bool = True
+        self.learning_mode: bool = True
+
         self._all_collided: bool = False
         self._any_finished: bool = False
         self.generation: int = 0
@@ -66,8 +69,10 @@ class Environment:
         self._any_finished = any(data.is_finished for data in self.vehicle_datas.values())
         self._all_collided = all(bool(data.collision) for data in self.vehicle_datas.values())
         if self._any_finished or self._all_collided:
-            self.on_generation_end()
-            self.on_reset()
+            if self.learning_mode:
+                self.on_generation_end()
+            if self.auto_reset:
+                self.on_reset_vehicle()
 
     def on_generation_end(self):
         population = [GA.weights_to_genome(self.vehicle_agents[vehicle]) for vehicle in self.vehicles]
@@ -84,7 +89,7 @@ class Environment:
         self.mapgen.set_map_size(value)
         self.mapgen.set_tile_size(CANVAS_SIZE / value)
 
-    def on_reset(self):
+    def on_reset_vehicle(self):
         self._all_collided = False
         self._any_finished = False
 
@@ -96,7 +101,13 @@ class Environment:
 
     def on_regenerate(self):
         self.mapgen.regenerate()
-        self.on_reset()
+        self.on_reset_vehicle()
+
+    def on_save_best_model(self):
+        pass
+
+    def on_load_model(self, path: str):
+        pass
 
     def _calculate_vehicle_start(self):
         first_tile = self.mapgen.get_tiles()[0]
