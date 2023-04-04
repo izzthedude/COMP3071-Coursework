@@ -26,7 +26,7 @@ class AppController(QObject):
         self._canvas_updater: QTimer = QTimer(self)  # The 'renderer' timer: runs on a different thread/timer.
         self._window.centralWidget().layout().addWidget(self._canvas)
 
-        self._panel.update_interval_spinbox.setRange(1, 20)
+        self._panel.update_interval_spinbox.setRange(1, 30)
         self._panel.update_interval_spinbox.setValue(enums.TICK_MS)
         self._panel.auto_reset_checkbox.setChecked(self._environment.auto_reset)
         self._panel.learning_mode_checkbox.setChecked(self._environment.learning_mode)

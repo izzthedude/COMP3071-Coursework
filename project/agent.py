@@ -1,6 +1,9 @@
+import math
 import random
 
 import numpy as np
+
+from project.models import Vehicle
 
 
 def _relu(inputs: np.ndarray) -> np.ndarray:
@@ -8,22 +11,45 @@ def _relu(inputs: np.ndarray) -> np.ndarray:
     return np.maximum(0, inputs)
 
 
+def _sigmoid(inputs: np.ndarray) -> np.ndarray:
+    return 1 / (1 + np.exp(-inputs))
+
+
+def _squash(value: float, domain: tuple[float, float]) -> float:
+    multiplier, offset = _squash_helper(domain)
+    return (value - offset) / multiplier
+
+
+def _desquash(value: float, domain: tuple[float, float]) -> float:
+    multiplier, offset = _squash_helper(domain)
+    return (value * multiplier) + offset
+
+
+def _squash_helper(domain: tuple[float, float]):
+    return abs(domain[1] - domain[0]), min(domain)
+
+
 class NavigatorAgent:
-    def __init__(self, n_inputs: int, n_hlayers: int, n_hneurons: int, n_outputs: int):
-        self.input_size = n_inputs
-        self.num_hlayers = n_hlayers
-        self.num_hneurons = n_hneurons
-        self.output_size = n_outputs
-        self._total_layers = n_hlayers + 2
+    def __init__(self, vehicle: Vehicle):
+        self._vehicle = vehicle
+        self._dtheta_domain = (math.radians(-5), math.radians(5))
+        self._dspeed_domain = (-1, 1)
+
+        self.input_size = 6
+        self.num_hlayers = 2
+        self.num_hneurons = 10
+        self.output_size = 2
+        self._total_layers = self.num_hlayers + 2
 
         self.weights: list[np.ndarray] = [
-            0.1 * np.random.randn(n_inputs, n_hneurons),  # Input to first hidden layer
-            *[0.1 * np.random.randn(n_hneurons, n_hneurons) for _ in range(n_hlayers - 1)],  # Hidden layers
-            0.1 * np.random.randn(n_hneurons, n_outputs)  # Last hidden layer to output
+            0.1 * np.random.randn(self.input_size, self.num_hneurons),  # Input to first hidden layer
+            *[0.1 * np.random.randn(self.num_hneurons, self.num_hneurons) for _ in range(self.num_hlayers - 1)],
+            0.1 * np.random.randn(self.num_hneurons, self.output_size)  # Last hidden layer to output
         ]
 
-    def predict(self, inputs: np.ndarray | list) -> np.ndarray:
-        return self._forward(inputs)
+    def predict(self, inputs: np.ndarray | list) -> tuple[float, float]:
+        out_dtheta, out_dspeed = self._forward(inputs)
+        return _desquash(out_dtheta, self._dtheta_domain), _desquash(out_dspeed, self._dspeed_domain)
 
     def _forward(self, inputs: np.ndarray | list) -> np.ndarray:
         # Input to first hidden layer
@@ -39,7 +65,8 @@ class NavigatorAgent:
 
         # Output layer
         last_outputs = np.dot(hactivations, self.weights[-1])
-        return last_outputs
+        last_activations = _sigmoid(last_outputs)
+        return last_activations
 
 
 class GeneticAlgorithm:

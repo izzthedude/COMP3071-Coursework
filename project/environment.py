@@ -1,8 +1,7 @@
-import math
 from dataclasses import dataclass
 
+from project import enums
 from project.agent import NavigatorAgent, GeneticAlgorithm as GA
-from project.enums import *
 from project.map_gen import MapGenerator, MapTile, Direction
 from project.models import Vehicle
 from project.utils import distance_2p
@@ -23,15 +22,16 @@ class VehicleData:
 class Environment:
     def __init__(self):
         size = 5
-        self.mapgen = MapGenerator(CANVAS_SIZE // size, size)
+        self.mapgen = MapGenerator(enums.CANVAS_SIZE // size, size)
 
         start_x, start_y = self._calculate_vehicle_start()
-        self.vehicles = [Vehicle(start_x, start_y, VEHICLE_SIZE, VEHICLE_SIZE, 90) for _ in range(NUM_POPULATION)]
+        self.vehicles = [Vehicle(start_x, start_y, enums.VEHICLE_SIZE, enums.VEHICLE_SIZE, 90) for _ in
+                         range(enums.NUM_POPULATION)]
         self.vehicle_datas: dict[Vehicle, VehicleData] = {
             vehicle: VehicleData(*self._find_sensor_intersections(vehicle)) for vehicle in self.vehicles
         }
         self.vehicle_agents: dict[Vehicle, NavigatorAgent] = {
-            vehicle: NavigatorAgent(6, 2, 5, 2) for vehicle in self.vehicles
+            vehicle: NavigatorAgent(vehicle) for vehicle in self.vehicles
         }
 
         self.auto_reset: bool = True
@@ -62,8 +62,8 @@ class Environment:
                     data.is_finished = vehicle.x <= x1 and y1 <= vehicle.y <= y2
 
                 inputs = [distance for _, _, distance in data.intersections] + [vehicle.speed()]
-                dangle, dspeed = self.vehicle_agents[vehicle].predict(inputs)
-                vehicle.theta += math.radians(dangle)
+                dtheta, dspeed = self.vehicle_agents[vehicle].predict(inputs)
+                vehicle.theta += dtheta
                 vehicle.change_speed(dspeed)
 
         self._any_finished = any(data.is_finished for data in self.vehicle_datas.values())
@@ -87,7 +87,7 @@ class Environment:
 
     def on_size_changed(self, value: int):
         self.mapgen.set_map_size(value)
-        self.mapgen.set_tile_size(CANVAS_SIZE / value)
+        self.mapgen.set_tile_size(enums.CANVAS_SIZE / value)
 
     def on_reset_vehicle(self):
         self._all_collided = False
@@ -112,7 +112,7 @@ class Environment:
     def _calculate_vehicle_start(self):
         first_tile = self.mapgen.get_tiles()[0]
         x = first_tile.x + (first_tile.size / 2)
-        y = VEHICLE_SIZE / 2 + 10
+        y = enums.VEHICLE_SIZE / 2 + 10
         return x, y
 
     def _closest_tiles(self, vehicle: Vehicle):

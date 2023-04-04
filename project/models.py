@@ -1,7 +1,7 @@
 import math
 
+from project import enums
 from project import utils
-from project.enums import *
 
 
 class Wheel:
@@ -18,7 +18,7 @@ class Sensor:
         self.x = x
         self.y = y
         self.size = size
-        self.sense_length = SENSOR_LENGTH
+        self.sense_length = enums.SENSOR_LENGTH
         self.sense_angle = sense_angle  # In RADIANS
 
     def line_start(self):
@@ -48,15 +48,15 @@ class Vehicle:
         self.width: float = width
         self.height: float = height
         self.theta: float = math.radians(angle)  # theta is in RADIANS, but I converted it from degrees for readability
-        self.max_speed: float = 5
+        self.max_speed: float = 10
 
         # Wheels and Sensors are initially positioned as if the robot's angle is 0 degrees, which faces the right.
         # This will later be recalibrated.
 
         # Wheels
         self.wheels: list[Wheel] = [
-            Wheel(self.x, self.y - self.height / 2, WHEEL_WIDTH, WHEEL_HEIGHT),
-            Wheel(self.x, self.y + self.height / 2, WHEEL_WIDTH, WHEEL_HEIGHT)
+            Wheel(self.x, self.y - self.height / 2, enums.WHEEL_WIDTH, enums.WHEEL_HEIGHT),
+            Wheel(self.x, self.y + self.height / 2, enums.WHEEL_WIDTH, enums.WHEEL_HEIGHT)
         ]
 
         # Sensors
@@ -66,11 +66,11 @@ class Vehicle:
         front_sense_angle = math.radians(30)
         side_sense_angle = math.radians(60)
         self.sensors: list[Sensor] = [
-            Sensor(sensor_x, (end_y - y_offset) * 0.25 + y_offset, SENSOR_SIZE, -front_sense_angle),  # Front left
-            Sensor(sensor_x, (end_y - y_offset) * 0.50 + y_offset, SENSOR_SIZE, 0),  # Front center
-            Sensor(sensor_x, (end_y - y_offset) * 0.75 + y_offset, SENSOR_SIZE, front_sense_angle),  # Front right
-            Sensor(self.x, self.y + self.height / 2, SENSOR_SIZE, side_sense_angle),  # Right
-            Sensor(self.x, self.y - self.height / 2, SENSOR_SIZE, -side_sense_angle),  # Left
+            Sensor(sensor_x, (end_y - y_offset) * 0.25 + y_offset, enums.SENSOR_SIZE, -front_sense_angle),  # Front left
+            Sensor(sensor_x, (end_y - y_offset) * 0.50 + y_offset, enums.SENSOR_SIZE, 0),  # Front center
+            Sensor(sensor_x, (end_y - y_offset) * 0.75 + y_offset, enums.SENSOR_SIZE, front_sense_angle),  # Front right
+            Sensor(self.x, self.y + self.height / 2, enums.SENSOR_SIZE, side_sense_angle),  # Right
+            Sensor(self.x, self.y - self.height / 2, enums.SENSOR_SIZE, -side_sense_angle),  # Left
         ]
 
         # Recalibrate positions
