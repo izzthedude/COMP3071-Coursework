@@ -1,11 +1,10 @@
-import math
-
 from PySide6.QtCore import *
 from PySide6.QtGui import *
 
 from project.agent import NavigatorAgent
 from project.enums import *
-from project.environment import Environment
+from project.environment import Environment, VehicleData
+from project.models import Vehicle
 from project.ui.canvas import Canvas
 from project.ui.panel import Panel
 from project.ui.window import MainWindow
@@ -19,32 +18,22 @@ class AppController(QObject):
 
         self._environment = environment
         self._mapgen = environment.mapgen
-        self._vehicle = environment.vehicle
-        self._agent: NavigatorAgent = environment.agent
+        self._vehicles: dict[Vehicle, VehicleData] = environment.vehicles
 
-        self._intersections: dict = environment.intersections
         self._is_running: bool = False
 
-        self._canvas: Canvas = Canvas(self._mapgen, self._vehicle, self._is_running)
+        self._canvas: Canvas = Canvas(self._mapgen, self._vehicles, self._is_running)
         self._timer: QTimer = QTimer(self)
-        self._canvas_updater: QTimer = QTimer(self)  # The 'renderer' timer: happens on a different thread/timer.
+        self._canvas_updater: QTimer = QTimer(self)  # The 'renderer' timer: runs on a different thread/timer.
 
         self._window.centralWidget().layout().addWidget(self._canvas)
         self._panel.size_spinbox.setValue(self._mapgen.get_map_size())
-        self._panel.change_speed_spinbox.setRange(0.1, 2.0)
-        self._panel.change_speed_spinbox.setSingleStep(0.05)
-        self._panel.change_speed_spinbox.setValue(self._environment.manual_dspeed_rate)
-        self._panel.turn_dangle_spinbox.setRange(0.1, 5.0)
-        self._panel.turn_dangle_spinbox.setSingleStep(0.1)
-        self._panel.turn_dangle_spinbox.setValue(self._environment.manual_turn_dangle)
 
         self._window.key_pressed.connect(self._on_key_pressed)
         self._panel.reset_btn.clicked.connect(self._on_reset)
         self._panel.size_spinbox.valueChanged.connect(self._on_size_changed)
         self._panel.regenerate_button.clicked.connect(self._on_regenerate)
-        self._panel.change_speed_spinbox.valueChanged.connect(self._on_dspeed_rate_changed)
-        self._panel.turn_dangle_spinbox.valueChanged.connect(self._on_turn_dangle_changed)
-        self._panel.manual_mode_btn.stateChanged.connect(self._on_manual_mode_changed)
+
         self._timer.timeout.connect(self._tick)
         self._canvas_updater.timeout.connect(self._update_canvas)
         self._canvas_updater.start(1000 / 30)  # Canvas updates per second, adjust the denominator to the desired FPS.
@@ -62,21 +51,6 @@ class AppController(QObject):
                 self._timer.start(TICK_MS)
             self._is_running = not self._is_running
 
-        if code == Qt.Key.Key_W and event_type == QEvent.KeyPress:
-            self._vehicle.change_speed(self._environment.manual_dspeed_rate)
-
-        if code == Qt.Key.Key_S and event_type == QEvent.KeyPress:
-            self._vehicle.change_speed(-self._environment.manual_dspeed_rate)
-
-        turn_speed = self._environment.manual_dspeed_rate * self._environment.manual_turn_dangle
-        if code == Qt.Key.Key_A:
-            if event_type == QEvent.KeyPress:
-                self._vehicle.theta -= math.radians(self._environment.manual_turn_dangle)
-
-        if code == Qt.Key.Key_D:
-            if event_type == QEvent.KeyPress:
-                self._vehicle.theta += math.radians(self._environment.manual_turn_dangle)
-
     def _on_size_changed(self, value: int):
         self._environment.on_size_changed(value)
 
@@ -86,18 +60,7 @@ class AppController(QObject):
     def _on_regenerate(self):
         self._environment.on_regenerate()
 
-    def _on_dspeed_rate_changed(self, value: float):
-        self._environment.manual_dspeed_rate = value
-
-    def _on_turn_dangle_changed(self, value: float):
-        self._environment.manual_turn_dangle = value
-
-    def _on_manual_mode_changed(self, state: bool):
-        self._environment.is_manual = bool(state)
-
     def _update_canvas(self):
         self._canvas.tiles = self._mapgen.get_tiles()
-        self._canvas.intersections = list(self._intersections.values())
-        self._canvas.collision = self._environment.collision
         self._canvas.is_running = self._is_running
         self._canvas.update()

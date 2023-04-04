@@ -5,20 +5,19 @@ from PySide6.QtGui import *
 from PySide6.QtWidgets import *
 
 from project.enums import CANVAS_SIZE
+from project.environment import VehicleData
 from project.map_gen import MapTile, MapGenerator
 from project.models import Vehicle, Wheel, Sensor
 
 
 class Canvas(QWidget):
-    def __init__(self, mapgen: MapGenerator, vehicle: Vehicle, is_running: bool,
+    def __init__(self, mapgen: MapGenerator, vehicles: dict[Vehicle, VehicleData], is_running: bool,
                  parent: QObject = None):
         super().__init__(parent)
 
         self.setFixedSize(CANVAS_SIZE, CANVAS_SIZE)
         self.tiles: list[MapTile] = mapgen.get_tiles()
-        self.vehicle: Vehicle = vehicle
-        self.intersections: list[tuple[float, float, float]] = []
-        self.collision: tuple[float, float] | None = None
+        self.vehicles: dict[Vehicle, VehicleData] = vehicles
         self.is_running: bool = is_running
 
     def paintEvent(self, event):
@@ -28,55 +27,57 @@ class Canvas(QWidget):
         for tile in self.tiles:
             self._draw_tile(tile, p)
 
-        # Draw vehicle's main body
-        p.translate(self.vehicle.x, self.vehicle.y)
-        p.rotate(math.degrees(self.vehicle.theta))
-        p.fillRect(
-            0 - self.vehicle.width / 2,
-            0 - self.vehicle.height / 2,
-            self.vehicle.width,
-            self.vehicle.height,
-            "blue"
-        )
-        p.resetTransform()
-
-        # Draw wheels
-        for wheel in self.vehicle.wheels:
-            self._draw_wheel(wheel, p)
-            p.resetTransform()
-
-        # Draw sensor lines
-        p.save()
-        for i in range(len(self.vehicle.sensors)):
-            length = self.vehicle.sensors[i].sense_length
-            if self.intersections and self.intersections[i]:
-                _, _, length = self.intersections[i]
-            self._draw_sensor_line(self.vehicle.sensors[i], length, p)
-        p.restore()
-
-        # Draw sensors
-        p.save()
-        for sensor in self.vehicle.sensors:
-            self._draw_sensor(sensor, p)
-            p.resetTransform()
-        p.restore()
-
-        # Draw collision
-        if self.collision:
+        for vehicle, data in self.vehicles.items():
+            # Draw vehicle's main body
             p.save()
-            p.setPen("red")
-            size = 10
-            x, y = self.collision[0] - size / 2, self.collision[1] - size / 2
-            p.drawEllipse(x, y, size, size)
+            p.translate(vehicle.x, vehicle.y)
+            p.rotate(math.degrees(vehicle.theta))
+            p.fillRect(
+                0 - vehicle.width / 2,
+                0 - vehicle.height / 2,
+                vehicle.width,
+                vehicle.height,
+                "blue"
+            )
+
+            # Draw border around vehicle's main body
+            # Draw it red if collided
+            if data.collision:
+                p.setPen("red")
+
+            p.drawRect(
+                0 - vehicle.width / 2,
+                0 - vehicle.height / 2,
+                vehicle.width,
+                vehicle.height,
+            )
+            p.resetTransform()
+            p.restore()
+
+            # Draw wheels
+            for wheel in vehicle.wheels:
+                self._draw_wheel(vehicle, wheel, p)
+                p.resetTransform()
+
+            # Draw sensor lines
+            p.save()
+            for i in range(len(vehicle.sensors)):
+                length = vehicle.sensors[i].sense_length
+                if data.intersections and data.intersections[i]:
+                    _, _, length = data.intersections[i]
+                self._draw_sensor_line(vehicle, vehicle.sensors[i], length, p)
+            p.restore()
+
+            # Draw sensors
+            p.save()
+            for sensor in vehicle.sensors:
+                self._draw_sensor(sensor, p)
+                p.resetTransform()
             p.restore()
 
         # Draw info
         is_running = "(RUNNING)" if self.is_running else "(STOPPED)"
-        topleft_texts = [
-            f"angle: {math.degrees(self.vehicle.theta):.2f}",
-            f"speed: {self.vehicle.speed():.2f}"
-        ]
-        self._draw_text_section(0, 0, f"Press SPACE to start/stop the timer {is_running}", topleft_texts, p)
+        self._draw_text_section(0, 0, f"Press SPACE to start/stop the timer {is_running}", [], p)
 
     def _draw_tile(self, tile: MapTile, painter: QPainter):
         for border in tile.borders:
@@ -91,9 +92,9 @@ class Canvas(QWidget):
                     y_end
                 )
 
-    def _draw_wheel(self, wheel: Wheel, painter: QPainter):
+    def _draw_wheel(self, vehicle: Vehicle, wheel: Wheel, painter: QPainter):
         painter.translate(wheel.x, wheel.y)
-        painter.rotate(math.degrees(self.vehicle.theta) + 90)
+        painter.rotate(math.degrees(vehicle.theta) + 90)
         painter.fillRect(
             0 - wheel.width / 2,
             0 - wheel.height / 2,
@@ -102,14 +103,14 @@ class Canvas(QWidget):
             "black"
         )
 
-    def _draw_sensor_line(self, sensor: Sensor, length: float, painter: QPainter):
+    def _draw_sensor_line(self, vehicle: Vehicle, sensor: Sensor, length: float, painter: QPainter):
         # Draw sensor lines
         painter.setPen("red")
         painter.setOpacity(0.4)
 
         line = QLineF()
         line.setP1(QPointF(*sensor.line_start()))
-        line.setAngle(math.degrees(-self.vehicle.theta - sensor.sense_angle))
+        line.setAngle(math.degrees(-vehicle.theta - sensor.sense_angle))
         line.setLength(length)
         painter.drawLine(line)
         painter.setOpacity(1)
