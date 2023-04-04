@@ -34,6 +34,21 @@ class MapTile:
         self._borders: list[tuple[tuple[int, int], tuple[int, int]]] = []
         self.borders: list[tuple[tuple[int, int], tuple[int, int]] | None] = []
 
+    def finish_line(self):
+        match self.to_direction:
+            case Direction.RIGHT | Direction.LEFT:
+                p1 = self.x + self.size / 2, self.y
+                p2 = self.x + self.size / 2, self.y + self.size
+                return p1, p2
+
+            case Direction.DOWN:
+                p1 = self.x, self.y + self.size / 2
+                p2 = self.x + self.size, self.y + self.size / 2
+                return p1, p2
+
+    def pos(self):
+        return self.x, self.y
+
     def top_border(self):
         return self._borders[0]
 

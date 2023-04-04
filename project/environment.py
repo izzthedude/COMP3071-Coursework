@@ -1,16 +1,17 @@
 from dataclasses import dataclass
 
-from project.agent import NavigatorAgent
 from project.enums import *
-from project.map_gen import MapGenerator, MapTile
+from project.map_gen import MapGenerator, MapTile, Direction
 from project.models import Vehicle
 from project.utils import distance_2p
 
 
 @dataclass
 class VehicleData:
-    collision: tuple | None
     intersections: list[tuple[float, float, float]]
+    collision: tuple | None = None
+    distance: float = 0
+    is_finished: bool = False
 
     def set_values(self, collision: tuple | None, intersections: list[tuple[float, float, float]]):
         self.collision = collision
@@ -23,35 +24,53 @@ class Environment:
         self.mapgen = MapGenerator(CANVAS_SIZE // size, size)
 
         start_x, start_y = self._calculate_vehicle_start()
-        vehicles = [Vehicle(start_x, start_y, VEHICLE_SIZE, VEHICLE_SIZE, 90) for _ in range(NUM_POPULATION)]
-        self.vehicles: dict[Vehicle, VehicleData] = {
-            vehicle: VehicleData(*self._find_sensor_intersections(vehicle)) for vehicle in vehicles
+        self.vehicles = [Vehicle(start_x, start_y, VEHICLE_SIZE, VEHICLE_SIZE, 90) for _ in range(NUM_POPULATION)]
+        self.vehicle_datas: dict[Vehicle, VehicleData] = {
+            vehicle: VehicleData(*self._find_sensor_intersections(vehicle)) for vehicle in self.vehicles
         }
-        self.agents: dict[Vehicle, NavigatorAgent] = {vehicle: NavigatorAgent(vehicle, 100) for vehicle in vehicles}
+
+        self._all_collided: bool = False
+        self._any_finished: bool = False
 
     def tick(self):
-        # If all cars have collided, reset the environment
-        if all(data.collision for data in self.vehicles.values()):
+        self._any_finished = any(data.is_finished for data in self.vehicle_datas.values())
+        self._all_collided = all(data.collision for data in self.vehicle_datas.values())
+        if self._any_finished or self._all_collided:
             self.on_reset()
 
-        for vehicle, data in self.vehicles.items():
-            if not data.collision:
-                # Find collision and intersection points
-                collision, intersections = self._find_sensor_intersections(vehicle)
-                data.set_values(collision, intersections)
+        first_tile = self.mapgen.get_tiles()[0]
+        last_tile = self.mapgen.get_tiles()[-1]
 
-                # Move vehicle
+        for vehicle in self.vehicles:
+            data = self.vehicle_datas[vehicle]
+            if not data.collision and not data.is_finished:  # Only calculate for a vehicle that hasn't collided and hasn't finished
                 vehicle.move()
+
+                data.intersections, data.collision = self._find_sensor_intersections(vehicle)
+                data.distance = distance_2p(first_tile.pos(), vehicle.pos())
+
+                # Check if past finish line
+                (x1, y1), (x2, y2) = last_tile.finish_line()
+                if last_tile.to_direction == Direction.RIGHT:
+                    data.is_finished = vehicle.x >= x1 and y1 <= vehicle.y <= y2
+                elif last_tile.to_direction == Direction.DOWN:
+                    data.is_finished = vehicle.y >= y1 and x1 <= vehicle.x <= x2
+                elif last_tile.to_direction == Direction.LEFT:
+                    data.is_finished = vehicle.x <= x1 and y1 <= vehicle.y <= y2
 
     def on_size_changed(self, value: int):
         self.mapgen.set_map_size(value)
         self.mapgen.set_tile_size(CANVAS_SIZE / value)
 
     def on_reset(self):
-        for vehicle, data in self.vehicles.items():
+        self._all_collided = False
+        self._any_finished = False
+
+        for vehicle, data in self.vehicle_datas.items():
             vehicle.x, vehicle.y = self._calculate_vehicle_start()
             vehicle.reset()
-            data.set_values(*self._find_sensor_intersections(vehicle))
+            data.intersections, data.collision = self._find_sensor_intersections(vehicle)
+            data.is_finished = False
 
     def on_regenerate(self):
         self.mapgen.regenerate()
@@ -71,8 +90,8 @@ class Environment:
         return sorted(self.mapgen.get_tiles(), key=distance)
 
     def _find_sensor_intersections(self, vehicle: Vehicle):
-        collision = None
         intersections = {}
+        collision = None
         tiles = self._closest_tiles(vehicle)
         for i, sensor in enumerate(vehicle.sensors):
             first_intersected = False
@@ -91,4 +110,4 @@ class Environment:
                         else:
                             intersections[sensor] = (*sensor.line_end(vehicle.theta), sensor.sense_length)
 
-        return collision, list(intersections.values())
+        return list(intersections.values()), collision

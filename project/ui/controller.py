@@ -1,7 +1,6 @@
 from PySide6.QtCore import *
 from PySide6.QtGui import *
 
-from project.agent import NavigatorAgent
 from project.enums import *
 from project.environment import Environment, VehicleData
 from project.models import Vehicle
@@ -18,7 +17,7 @@ class AppController(QObject):
 
         self._environment = environment
         self._mapgen = environment.mapgen
-        self._vehicles: dict[Vehicle, VehicleData] = environment.vehicles
+        self._vehicles: dict[Vehicle, VehicleData] = environment.vehicle_datas
 
         self._is_running: bool = False
 

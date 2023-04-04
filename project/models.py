@@ -98,6 +98,9 @@ class Vehicle:
         # Recalculate positions of vehicle parts
         self._recalculate_parts()
 
+    def pos(self):
+        return self.x, self.y
+
     def speed(self):
         return self.wheels[0].speed + self.wheels[1].speed
 

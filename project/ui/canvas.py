@@ -23,10 +23,34 @@ class Canvas(QWidget):
     def paintEvent(self, event):
         p = QPainter(self)
 
-        # Draw tiles
+        # Draw last tile
+        p.save()
+        p.setOpacity(0.4)
+        last_tile = self.tiles[-1]
+        p.fillRect(
+            last_tile.x,
+            last_tile.y,
+            last_tile.size,
+            last_tile.size,
+            "green"
+        )
+        p.restore()
+
+        # Draw tile borders
         for tile in self.tiles:
             self._draw_tile(tile, p)
 
+        # Draw finish line for last border
+        p.save()
+        pen = p.pen()
+        pen.setWidth(3)
+        pen.setStyle(Qt.PenStyle.DashDotLine)
+        p.setPen(pen)
+        p1, p2 = last_tile.finish_line()
+        p.drawLine(*p1, *p2)
+        p.restore()
+
+        # Draw vehicles
         for vehicle, data in self.vehicles.items():
             # Draw vehicle's main body
             p.save()
