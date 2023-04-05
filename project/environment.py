@@ -1,22 +1,8 @@
-from dataclasses import dataclass
-
 from project import enums
 from project.agent import NavigatorAgent, GeneticAlgorithm as GA
 from project.map_gen import MapGenerator, MapTile, Direction
-from project.models import Vehicle
+from project.models import Vehicle, VehicleData
 from project.utils import distance_2p
-
-
-@dataclass
-class VehicleData:
-    intersections: list[tuple[float, float, float]]
-    collision: tuple | None = None
-    distance: float = 0
-    is_finished: bool = False
-
-    def set_values(self, collision: tuple | None, intersections: list[tuple[float, float, float]]):
-        self.collision = collision
-        self.intersections = intersections
 
 
 class Environment:
@@ -50,7 +36,7 @@ class Environment:
                 vehicle.move()
 
                 data.intersections, data.collision = self._find_sensor_intersections(vehicle)
-                data.distance = distance_2p(first_tile.pos(), vehicle.pos())
+                data.displacement = distance_2p(first_tile.pos(), vehicle.pos())
 
                 # Check if past finish line
                 (x1, y1), (x2, y2) = last_tile.finish_line()
@@ -76,9 +62,9 @@ class Environment:
 
     def on_generation_end(self):
         population = [GA.weights_to_genome(self.vehicle_agents[vehicle]) for vehicle in self.vehicles]
-        distances = [self.vehicle_datas[vehicle].distance for vehicle in self.vehicles]
+        displacements = [self.vehicle_datas[vehicle].displacement for vehicle in self.vehicles]
 
-        next_generation = GA.next_generation(population, distances)
+        next_generation = GA.next_generation(population, displacements)
         for vehicle, genome in zip(self.vehicles, next_generation):
             agent = self.vehicle_agents[vehicle]
             agent.weights = GA.genome_to_weights(agent, genome)

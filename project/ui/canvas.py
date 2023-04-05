@@ -5,9 +5,8 @@ from PySide6.QtGui import *
 from PySide6.QtWidgets import *
 
 from project.enums import CANVAS_SIZE
-from project.environment import VehicleData
 from project.map_gen import MapTile, MapGenerator
-from project.models import Vehicle, Wheel, Sensor
+from project.models import Vehicle, Wheel, Sensor, VehicleData
 
 
 class Canvas(QWidget):

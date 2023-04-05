@@ -1,4 +1,5 @@
 import math
+from dataclasses import dataclass, asdict
 
 from project import enums
 from project import utils
@@ -178,3 +179,16 @@ class Vehicle:
         sign = math.copysign(1, speed)
         new_speed = min(self.max_speed / 2, abs(speed))
         wheel.speed = sign * new_speed
+
+
+@dataclass
+class VehicleData:
+    vehicle: Vehicle
+    intersections: list[tuple[float, float, float]]
+    collision: tuple | None = None
+    distance: float = 0
+    displacement: float = 0
+    is_finished: bool = False
+
+    def as_dict(self):
+        return asdict(self)

@@ -2,8 +2,8 @@ from PySide6.QtCore import *
 from PySide6.QtGui import *
 
 from project import enums
-from project.environment import Environment, VehicleData
-from project.models import Vehicle
+from project.environment import Environment
+from project.models import Vehicle, VehicleData
 from project.ui.canvas import Canvas
 from project.ui.panel import Panel
 from project.ui.window import MainWindow

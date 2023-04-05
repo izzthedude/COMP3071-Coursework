@@ -71,10 +71,10 @@ class NavigatorAgent:
 
 class GeneticAlgorithm:
     @staticmethod
-    def selection_pair(population: list[list[float]], distances: list[float]):
+    def selection_pair(population: list[list[float]], displacements: list[float]) -> tuple[float, float]:
         return random.choices(
             population=population,
-            weights=[distance for distance in sorted(distances, key=lambda distance: distance, reverse=True)],
+            weights=displacements,
             k=2
         )
 
@@ -91,28 +91,33 @@ class GeneticAlgorithm:
         return genome1[0:index] + genome2[index:], genome2[0:index] + genome1[index:]
 
     @staticmethod
-    def mutation(genome: list[float], num: int = 5, mutation_rate: float = 0.2):
+    def mutation(genome: list[float], mutation_chance: float, mutation_rate: float):
         mutated = genome.copy()
-        for _ in range(num):
-            if random.random() > 0.5:
-                index = random.randrange(len(genome))
-                sign = random.choice([-1, 1])
-                mutated[index] += sign * mutation_rate
+        for i in range(len(genome)):
+            if random.random() < mutation_chance:
+                mutated[i] = random.choice([-1, 1]) * mutation_rate
         return mutated
 
     @staticmethod
-    def next_generation(population: list[list[float]], distances: list[float],
-                        num_mutation: int = 10, mutation_rate: float = 0.5):
-        # Sort by longest distance/vector travelled from the starting point
-        zipped_sorted = sorted(zip(population, distances), key=lambda item: item[1], reverse=True)
-        population = [pop for pop, distance in zipped_sorted]
-        next_generation = population[:2]
-        for i in range(len(population) // 2 - 1):
-            parents = GeneticAlgorithm.selection_pair(population, distances)
+    def next_generation(population: list[list[float]], displacements: list[float],
+                        mutation_chance: float = 0.6, mutation_rate: float = 0.4):
+        # Sort by longest displacements travelled from the starting point
+        zipped_sorted = sorted(zip(population, displacements), key=lambda item: item[1], reverse=True)
+        sorted_population = [pop for pop, displacement in zipped_sorted]
+        sorted_displacements = [displacement for pop, displacement in zipped_sorted]
+
+        # Produce next generation
+        next_generation = sorted_population[:2]
+        while len(next_generation) < len(sorted_population):
+            parents = GeneticAlgorithm.selection_pair(sorted_population, sorted_displacements)
             child_a, child_b = GeneticAlgorithm.crossover(*parents)
-            child_a = GeneticAlgorithm.mutation(child_a, num_mutation, mutation_rate)
-            child_b = GeneticAlgorithm.mutation(child_b, num_mutation, mutation_rate)
+            child_a = GeneticAlgorithm.mutation(child_a, mutation_chance, mutation_rate)
+            child_b = GeneticAlgorithm.mutation(child_b, mutation_chance, mutation_rate)
             next_generation += [child_a, child_b]
+
+        # For odd population sizes
+        if len(next_generation) > len(sorted_population):
+            next_generation = next_generation[:-1]
 
         return next_generation
 
