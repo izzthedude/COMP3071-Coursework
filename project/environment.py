@@ -1,3 +1,5 @@
+import time
+
 from project import enums
 from project.agent import NavigatorAgent, GeneticAlgorithm as GA
 from project.map_gen import MapGenerator, MapTile, Direction
@@ -7,14 +9,14 @@ from project.utils import distance_2p
 
 class Environment:
     def __init__(self):
-        size = 5
+        size = 7
         self.mapgen = MapGenerator(enums.CANVAS_SIZE // size, size)
 
         start_x, start_y = self._calculate_vehicle_start()
         self.vehicles = [Vehicle(start_x, start_y, enums.VEHICLE_SIZE, enums.VEHICLE_SIZE, 90) for _ in
                          range(enums.NUM_POPULATION)]
         self.vehicle_datas: dict[Vehicle, VehicleData] = {
-            vehicle: VehicleData(*self._find_sensor_intersections(vehicle)) for vehicle in self.vehicles
+            vehicle: VehicleData(vehicle, *self._find_sensor_intersections(vehicle)) for vehicle in self.vehicles
         }
         self.vehicle_agents: dict[Vehicle, NavigatorAgent] = {
             vehicle: NavigatorAgent(vehicle) for vehicle in self.vehicles
@@ -23,20 +25,23 @@ class Environment:
         self.auto_reset: bool = True
         self.learning_mode: bool = True
 
-        self._all_collided: bool = False
-        self._any_finished: bool = False
+        self._first_tick: bool = True
         self.generation: int = 0
 
     def tick(self):
-        first_tile = self.mapgen.get_tiles()[0]
         last_tile = self.mapgen.get_tiles()[-1]
         for vehicle in self.vehicles:
             data = self.vehicle_datas[vehicle]
-            if not data.collision and not data.is_finished:  # Only calculate for a vehicle that hasn't collided and hasn't finished
+            if self._first_tick:
+                data.start_time = time.time()
+
+            # Only calculate for a vehicle that hasn't collided or finished
+            if not (data.collision or data.is_finished):
                 vehicle.move()
 
                 data.intersections, data.collision = self._find_sensor_intersections(vehicle)
-                data.displacement = distance_2p(first_tile.pos(), vehicle.pos())
+                data.displacement_start = distance_2p(self._calculate_vehicle_start(), vehicle.pos())
+                data.displacement_goal = distance_2p(last_tile.center(), vehicle.pos())
 
                 # Check if past finish line
                 (x1, y1), (x2, y2) = last_tile.finish_line()
@@ -47,24 +52,30 @@ class Environment:
                 elif last_tile.to_direction == Direction.LEFT:
                     data.is_finished = vehicle.x <= x1 and y1 <= vehicle.y <= y2
 
+                if data.is_finished:
+                    data.time_taken = time.time() - data.start_time
+
                 inputs = [distance for _, _, distance in data.intersections] + [vehicle.speed()]
                 dtheta, dspeed = self.vehicle_agents[vehicle].predict(inputs)
                 vehicle.theta += dtheta
                 vehicle.change_speed(dspeed)
 
-        self._any_finished = any(data.is_finished for data in self.vehicle_datas.values())
-        self._all_collided = all(bool(data.collision) for data in self.vehicle_datas.values())
-        if self._any_finished or self._all_collided:
+        if self._first_tick:
+            self._first_tick = False
+
+        if all(data.collision or data.is_finished for data in self.vehicle_datas.values()):
             if self.learning_mode:
                 self.on_generation_end()
             if self.auto_reset:
-                self.on_reset_vehicle()
+                self.on_reset()
 
     def on_generation_end(self):
         population = [GA.weights_to_genome(self.vehicle_agents[vehicle]) for vehicle in self.vehicles]
-        displacements = [self.vehicle_datas[vehicle].displacement for vehicle in self.vehicles]
+        datas = [self.vehicle_datas[vehicle] for vehicle in self.vehicles]
+        for i in range(len(datas)):
+            datas[i].genome = population[i]
 
-        next_generation = GA.next_generation(population, displacements)
+        next_generation = GA.next_generation(datas)
         for vehicle, genome in zip(self.vehicles, next_generation):
             agent = self.vehicle_agents[vehicle]
             agent.weights = GA.genome_to_weights(agent, genome)
@@ -75,19 +86,18 @@ class Environment:
         self.mapgen.set_map_size(value)
         self.mapgen.set_tile_size(enums.CANVAS_SIZE / value)
 
-    def on_reset_vehicle(self):
-        self._all_collided = False
-        self._any_finished = False
+    def on_reset(self):
+        self._first_tick = True
 
         for vehicle, data in self.vehicle_datas.items():
             vehicle.x, vehicle.y = self._calculate_vehicle_start()
             vehicle.reset()
             data.intersections, data.collision = self._find_sensor_intersections(vehicle)
-            data.is_finished = False
+            data.reset()
 
     def on_regenerate(self):
         self.mapgen.regenerate()
-        self.on_reset_vehicle()
+        self.on_reset()
 
     def on_save_best_model(self):
         pass

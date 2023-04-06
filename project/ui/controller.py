@@ -27,7 +27,7 @@ class AppController(QObject):
         self._window.centralWidget().layout().addWidget(self._canvas)
 
         self._panel.update_interval_spinbox.setRange(1, 30)
-        self._panel.update_interval_spinbox.setValue(enums.TICK_MS)
+        self._panel.update_interval_spinbox.setValue(enums.UPDATE_INTERVAL)
         self._panel.auto_reset_checkbox.setChecked(self._environment.auto_reset)
         self._panel.learning_mode_checkbox.setChecked(self._environment.learning_mode)
         self._panel.size_spinbox.setRange(3, 11)
@@ -55,15 +55,15 @@ class AppController(QObject):
             if self._is_running:
                 self._timer.stop()
             else:
-                self._timer.start(enums.TICK_MS)
+                self._timer.start(enums.UPDATE_INTERVAL)
             self._is_running = not self._is_running
 
         if code == Qt.Key.Key_Return and event_type == QEvent.KeyPress:
             self._environment.on_generation_end()
-            self._environment.on_reset_vehicle()
+            self._environment.on_reset()
 
     def _on_update_interval_changed(self, value: int):
-        enums.TICK_MS = value
+        enums.UPDATE_INTERVAL = value
 
     def _on_auto_reset_changed(self, check: bool):
         self._environment.auto_reset = check
@@ -75,7 +75,7 @@ class AppController(QObject):
         self._environment.on_regenerate()
 
     def _on_reset_vehicle(self):
-        self._environment.on_reset_vehicle()
+        self._environment.on_reset()
 
     def _on_learning_mode_changed(self, check: bool):
         self._environment.learning_mode = check

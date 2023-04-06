@@ -3,7 +3,7 @@ import random
 
 import numpy as np
 
-from project.models import Vehicle
+from project.models import Vehicle, VehicleData
 
 
 def _relu(inputs: np.ndarray) -> np.ndarray:
@@ -13,11 +13,6 @@ def _relu(inputs: np.ndarray) -> np.ndarray:
 
 def _sigmoid(inputs: np.ndarray) -> np.ndarray:
     return 1 / (1 + np.exp(-inputs))
-
-
-def _squash(value: float, domain: tuple[float, float]) -> float:
-    multiplier, offset = _squash_helper(domain)
-    return (value - offset) / multiplier
 
 
 def _desquash(value: float, domain: tuple[float, float]) -> float:
@@ -71,15 +66,30 @@ class NavigatorAgent:
 
 class GeneticAlgorithm:
     @staticmethod
-    def selection_pair(population: list[list[float]], displacements: list[float]) -> tuple[float, float]:
+    def fitness(data: VehicleData) -> float:
+        displacement_start, displacement_goal, is_finished, time_taken = data.fitness_data()
+
+        ratio = math.sqrt(displacement_start) / math.sqrt(displacement_goal)
+        if is_finished:
+            # Multiplier here is just an arbitrary value
+            # Adjust it to change how much the time should influence the fitness
+            multiplier = 20
+            out = (multiplier / time_taken) + ratio
+        else:
+            out = ratio
+
+        return out
+
+    @staticmethod
+    def selection_pair(population: list[list[float]], fitnesses: list[float]) -> tuple[float, float]:
         return random.choices(
             population=population,
-            weights=displacements,
+            weights=fitnesses,
             k=2
         )
 
     @staticmethod
-    def crossover(genome1: list[float], genome2: list[float]):
+    def crossover(genome1: list[float], genome2: list[float]) -> tuple[list[float], list[float]]:
         length = len(genome1)
         if length != len(genome2):
             raise ValueError(f"Length of given gnomes are not equal. {length} != {len(genome2)}")
@@ -91,32 +101,37 @@ class GeneticAlgorithm:
         return genome1[0:index] + genome2[index:], genome2[0:index] + genome1[index:]
 
     @staticmethod
-    def mutation(genome: list[float], mutation_chance: float, mutation_rate: float):
+    def mutation(genome: list[float], mutation_chance: float, mutation_rate: float) -> list[float]:
         mutated = genome.copy()
         for i in range(len(genome)):
             if random.random() < mutation_chance:
-                mutated[i] = random.choice([-1, 1]) * mutation_rate
+                mutated[i] += random.choice([-1, 1]) * mutation_rate
         return mutated
 
     @staticmethod
-    def next_generation(population: list[list[float]], displacements: list[float],
-                        mutation_chance: float = 0.6, mutation_rate: float = 0.4):
-        # Sort by longest displacements travelled from the starting point
-        zipped_sorted = sorted(zip(population, displacements), key=lambda item: item[1], reverse=True)
-        sorted_population = [pop for pop, displacement in zipped_sorted]
-        sorted_displacements = [displacement for pop, displacement in zipped_sorted]
+    def next_generation(datas: list[VehicleData], mutation_chance: float = 0.6, mutation_rate: float = 0.2):
+        # Sort data by fitness function
+        sorted_datas = sorted(
+            datas,
+            key=lambda data: GeneticAlgorithm.fitness(data),
+            reverse=True
+        )
+        population = [data.genome for data in sorted_datas]
+        fitnesses = [GeneticAlgorithm.fitness(data) for data in sorted_datas]
 
-        # Produce next generation
-        next_generation = sorted_population[:2]
-        while len(next_generation) < len(sorted_population):
-            parents = GeneticAlgorithm.selection_pair(sorted_population, sorted_displacements)
+        # Produce next generation from the top 20%
+        num = int(len(population) * 0.20)
+        next_generation = population[:num]
+        while len(next_generation) < len(population):
+            # Only select a pair from the 20%
+            parents = GeneticAlgorithm.selection_pair(population[:num], fitnesses[:num])
             child_a, child_b = GeneticAlgorithm.crossover(*parents)
             child_a = GeneticAlgorithm.mutation(child_a, mutation_chance, mutation_rate)
             child_b = GeneticAlgorithm.mutation(child_b, mutation_chance, mutation_rate)
             next_generation += [child_a, child_b]
 
         # For odd population sizes
-        if len(next_generation) > len(sorted_population):
+        if len(next_generation) > len(population):
             next_generation = next_generation[:-1]
 
         return next_generation

@@ -1,5 +1,5 @@
 import math
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 
 from project import enums
 from project import utils
@@ -186,9 +186,26 @@ class VehicleData:
     vehicle: Vehicle
     intersections: list[tuple[float, float, float]]
     collision: tuple | None = None
-    distance: float = 0
-    displacement: float = 0
+    displacement_start: float = 0.0
+    displacement_goal: float = 0.0
     is_finished: bool = False
+    start_time: float = 0.0
+    time_taken: float = 0.0
+    genome: list[float] = field(default=lambda: [])
+
+    def reset(self):
+        self.collision = None
+        self.displacement_start = 0.0
+        self.displacement_goal = 0.0
+        self.is_finished = False
+        self.start_time = 0.0
+        self.time_taken = 0.0
 
     def as_dict(self):
         return asdict(self)
+
+    def fitness_data(self):
+        return self.displacement_start, self.displacement_goal, self.is_finished, self.time_taken
+
+    def __repr__(self):
+        return repr((self.displacement_start, self.displacement_goal, self.is_finished, self.time_taken))

@@ -68,6 +68,8 @@ class Canvas(QWidget):
             # Draw it red if collided
             if data.collision:
                 p.setPen("red")
+            if data.is_finished:
+                p.setPen("lime")
 
             p.drawRect(
                 0 - vehicle.width / 2,

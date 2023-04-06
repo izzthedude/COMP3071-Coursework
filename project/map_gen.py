@@ -49,6 +49,9 @@ class MapTile:
     def pos(self):
         return self.x, self.y
 
+    def center(self):
+        return self.x + self.size / 2, self.y + self.size / 2
+
     def top_border(self):
         return self._borders[0]
 
