@@ -19,7 +19,7 @@ class Sensor:
         self.x = x
         self.y = y
         self.size = size
-        self.sense_length = enums.SENSOR_LENGTH
+        self.sense_length = 200
         self.sense_angle = sense_angle  # In RADIANS
 
     def line_start(self):
@@ -49,29 +49,30 @@ class Vehicle:
         self.width: float = width
         self.height: float = height
         self.theta: float = math.radians(angle)  # theta is in RADIANS, but I converted it from degrees for readability
-        self.max_speed: float = 10
 
-        # Wheels and Sensors are initially positioned as if the robot's angle is 0 degrees, which faces the right.
+        # Wheels and Sensors will be initially positioned as if the robot's angle is 0 degrees, which faces the right.
         # This will later be recalibrated.
 
         # Wheels
+        wheel_width, wheel_height = 8, 24
         self.wheels: list[Wheel] = [
-            Wheel(self.x, self.y - self.height / 2, enums.WHEEL_WIDTH, enums.WHEEL_HEIGHT),
-            Wheel(self.x, self.y + self.height / 2, enums.WHEEL_WIDTH, enums.WHEEL_HEIGHT)
+            Wheel(self.x, self.y - self.height / 2, wheel_width, wheel_height),
+            Wheel(self.x, self.y + self.height / 2, wheel_width, wheel_height)
         ]
 
         # Sensors
+        sensor_size = 8
         sensor_x = self.x + self.width / 2
         end_y = self.y + self.height / 2
         y_offset = end_y - self.height
         front_sense_angle = math.radians(30)
         side_sense_angle = math.radians(60)
         self.sensors: list[Sensor] = [
-            Sensor(sensor_x, (end_y - y_offset) * 0.25 + y_offset, enums.SENSOR_SIZE, -front_sense_angle),  # Front left
-            Sensor(sensor_x, (end_y - y_offset) * 0.50 + y_offset, enums.SENSOR_SIZE, 0),  # Front center
-            Sensor(sensor_x, (end_y - y_offset) * 0.75 + y_offset, enums.SENSOR_SIZE, front_sense_angle),  # Front right
-            Sensor(self.x, self.y + self.height / 2, enums.SENSOR_SIZE, side_sense_angle),  # Right
-            Sensor(self.x, self.y - self.height / 2, enums.SENSOR_SIZE, -side_sense_angle),  # Left
+            Sensor(sensor_x, (end_y - y_offset) * 0.25 + y_offset, sensor_size, -front_sense_angle),  # Front left
+            Sensor(sensor_x, (end_y - y_offset) * 0.50 + y_offset, sensor_size, 0),  # Front center
+            Sensor(sensor_x, (end_y - y_offset) * 0.75 + y_offset, sensor_size, front_sense_angle),  # Front right
+            Sensor(self.x, self.y + self.height / 2, sensor_size, side_sense_angle),  # Right
+            Sensor(self.x, self.y - self.height / 2, sensor_size, -side_sense_angle),  # Left
         ]
 
         # Recalibrate positions
@@ -177,7 +178,7 @@ class Vehicle:
 
     def _set_speed_helper(self, wheel: Wheel, speed: float):
         sign = math.copysign(1, speed)
-        new_speed = min(self.max_speed / 2, abs(speed))
+        new_speed = min(enums.VEHICLE_MAXSPEED / 2, abs(speed))
         wheel.speed = sign * new_speed
 
 

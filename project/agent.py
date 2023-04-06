@@ -3,6 +3,7 @@ import random
 
 import numpy as np
 
+from project import enums
 from project.models import Vehicle, VehicleData
 
 
@@ -24,11 +25,14 @@ def _squash_helper(domain: tuple[float, float]):
     return abs(domain[1] - domain[0]), min(domain)
 
 
+def _exp_decay(value: float, multiplier: float, power: float):
+    # Referenced from https://math.stackexchange.com/questions/2479176/exponential-decay-as-input-goes-to-0
+    return math.e ** (multiplier / (value ** power))
+
+
 class NavigatorAgent:
     def __init__(self, vehicle: Vehicle):
         self._vehicle = vehicle
-        self._dtheta_domain = (math.radians(-5), math.radians(5))
-        self._dspeed_domain = (-1, 1)
 
         self.input_size = 6
         self.num_hlayers = 2
@@ -43,8 +47,11 @@ class NavigatorAgent:
         ]
 
     def predict(self, inputs: np.ndarray | list) -> tuple[float, float]:
+        dtheta_domain = (math.radians(-enums.VEHICLE_DANGLE), math.radians(enums.VEHICLE_DANGLE))
+        dspeed_domain = (-enums.VEHICLE_DSPEED, enums.VEHICLE_DSPEED)
+
         out_dtheta, out_dspeed = self._forward(inputs)
-        return _desquash(out_dtheta, self._dtheta_domain), _desquash(out_dspeed, self._dspeed_domain)
+        return _desquash(out_dtheta, dtheta_domain), _desquash(out_dspeed, dspeed_domain)
 
     def _forward(self, inputs: np.ndarray | list) -> np.ndarray:
         # Input to first hidden layer
@@ -70,14 +77,12 @@ class GeneticAlgorithm:
         displacement_start, displacement_goal, is_finished, time_taken = data.fitness_data()
 
         ratio = math.sqrt(displacement_start) / math.sqrt(displacement_goal)
+        out = ratio
         if is_finished:
-            # Multiplier here is just an arbitrary value
-            # Adjust it to change how much the time should influence the fitness
-            multiplier = 20
-            out = (multiplier / time_taken) + ratio
-        else:
-            out = ratio
-
+            # Values here are arbitrary. Adjust them to change how much the time should influence the fitness
+            multiplier = 2  # HIGHER = more influence
+            power = 0.5  # LOWER = more influence
+            out = _exp_decay(time_taken, multiplier, power) + ratio
         return out
 
     @staticmethod
@@ -120,7 +125,7 @@ class GeneticAlgorithm:
         fitnesses = [GeneticAlgorithm.fitness(data) for data in sorted_datas]
 
         # Produce next generation from the top 20%
-        num = int(len(population) * 0.20)
+        num = int(len(population) * 0.25)
         next_generation = population[:num]
         while len(next_generation) < len(population):
             # Only select a pair from the 20%
