@@ -21,7 +21,7 @@ class AppController(QObject):
 
         self._is_running: bool = False
 
-        self._canvas: Canvas = Canvas(self._mapgen, self._vehicles, self._is_running)
+        self._canvas: Canvas = Canvas(self._environment, self._is_running)
         self._timer: QTimer = QTimer(self)
         self._canvas_updater: QTimer = QTimer(self)  # The 'renderer' timer: runs on a different thread/timer.
         self._window.centralWidget().layout().addWidget(self._canvas)
@@ -88,7 +88,5 @@ class AppController(QObject):
         pass
 
     def _update_canvas(self):
-        self._canvas.tiles = self._mapgen.get_tiles()
         self._canvas.is_running = self._is_running
-        self._canvas.generation = self._environment.generation
         self._canvas.update()

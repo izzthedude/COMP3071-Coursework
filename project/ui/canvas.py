@@ -5,20 +5,18 @@ from PySide6.QtGui import *
 from PySide6.QtWidgets import *
 
 from project.enums import CANVAS_SIZE
-from project.map_gen import MapTile, MapGenerator
-from project.models import Vehicle, Wheel, Sensor, VehicleData
+from project.environment import Environment
+from project.map_gen import MapTile
+from project.models import Vehicle, Wheel, Sensor
 
 
 class Canvas(QWidget):
-    def __init__(self, mapgen: MapGenerator, vehicles: dict[Vehicle, VehicleData], is_running: bool,
-                 parent: QObject = None):
+    def __init__(self, environment: Environment, is_running: bool, parent: QObject = None):
         super().__init__(parent)
 
         self.setFixedSize(CANVAS_SIZE, CANVAS_SIZE)
-        self.tiles: list[MapTile] = mapgen.get_tiles()
-        self.vehicles: dict[Vehicle, VehicleData] = vehicles
+        self._env: Environment = environment
         self.is_running: bool = is_running
-        self.generation: int = 0
 
     def paintEvent(self, event):
         p = QPainter(self)
@@ -26,7 +24,7 @@ class Canvas(QWidget):
         # Draw last tile
         p.save()
         p.setOpacity(0.4)
-        last_tile = self.tiles[-1]
+        last_tile = self._env.mapgen.get_tiles()[-1]
         p.fillRect(
             last_tile.x,
             last_tile.y,
@@ -37,7 +35,7 @@ class Canvas(QWidget):
         p.restore()
 
         # Draw tile borders
-        for tile in self.tiles:
+        for tile in self._env.mapgen.get_tiles():
             self._draw_tile(tile, p)
 
         # Draw finish line for last border
@@ -51,7 +49,7 @@ class Canvas(QWidget):
         p.restore()
 
         # Draw vehicles
-        for vehicle, data in self.vehicles.items():
+        for vehicle, data in self._env.vehicle_datas.items():
             # Draw vehicle's main body
             p.save()
             p.translate(vehicle.x, vehicle.y)
@@ -104,7 +102,7 @@ class Canvas(QWidget):
         # Draw info
         is_running = "(RUNNING)" if self.is_running else "(STOPPED)"
         info = [
-            f"Generation: {self.generation}"
+            f"Generation: {self._env.generation}"
         ]
         self._draw_text_section(0, 0, f"Press SPACE to start/stop the timer {is_running}", info, p)
 

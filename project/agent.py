@@ -109,7 +109,7 @@ class GeneticAlgorithm:
         return mutated
 
     @staticmethod
-    def next_generation(datas: list[VehicleData], mutation_chance: float = 0.6, mutation_rate: float = 0.2):
+    def next_generation(datas: list[VehicleData], mutation_chance: float = 0.4, mutation_rate: float = 0.2):
         # Sort data by fitness function
         sorted_datas = sorted(
             datas,
