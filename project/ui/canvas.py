@@ -99,22 +99,22 @@ class Canvas(QWidget):
                 p.resetTransform()
             p.restore()
 
-        # Draw top left info
+        # Draw general info
         ticks_left = self._env.ticks_per_gen - self._env.current_ticks
         until_regen = self._env.regen_on_success - self._env.current_map_success
         until_resize = self._env.resize_on_success - self._env.current_mapsize_success
-        topleft_info = [
+        general_info = [
             f"Running: {self.is_running} | {ticks_left}",
             f"Generation: {self._env.generation} | {self._env.first_successful_generation} | {until_regen} | {until_resize}",
         ]
-        self._draw_text_section(0, 0, "", topleft_info, p)
+        self._draw_text_section(800, 0, "", general_info, p)
 
-        # Draw top right info
-        topright_info = [
+        # Draw controls info
+        controls_info = [
             f"SPACE: Run/stop simulation",
             f"ENTER: Proceed to next generation"
         ]
-        self._draw_text_section(750, 0, "Controls", topright_info, p)
+        self._draw_text_section(0, 0, "Controls", controls_info, p)
 
     def _draw_tile(self, tile: MapTile, painter: QPainter):
         for border in tile.borders:
