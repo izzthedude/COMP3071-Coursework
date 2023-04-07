@@ -1,7 +1,9 @@
 import math
 
+from project.types import *
 
-def distance_2p(p1: tuple[float, float], p2: tuple[float, float]) -> float:
+
+def distance_2p(p1: Point, p2: Point) -> float:
     """
     Calculates the distance between two points.
 
@@ -23,7 +25,7 @@ def distance_2p(p1: tuple[float, float], p2: tuple[float, float]) -> float:
     return math.sqrt(dx ** 2 + dy ** 2)
 
 
-def point_on_circle(origin: tuple[float, float], radius: float, theta: float) -> tuple[float, float]:
+def point_on_circle(origin: Point, radius: float, theta: float) -> Point:
     """
     Calculates a point on the circle's circumference.
 
@@ -47,9 +49,7 @@ def point_on_circle(origin: tuple[float, float], radius: float, theta: float) ->
     return x, y
 
 
-def intersects(line1: tuple[tuple[float, float], tuple[float, float]],
-               line2: tuple[tuple[float, float], tuple[float, float]]
-               ) -> tuple[float, float] | None:
+def intersects(line1: Line, line2: Line) -> Point | None:
     """
     Calculates the intersection point between two lines.
 
@@ -86,8 +86,7 @@ def intersects(line1: tuple[tuple[float, float], tuple[float, float]],
     return x, y
 
 
-def calculate_borders(top_left: tuple[float, float], width: float, height: float
-                      ) -> list[tuple[tuple[float, float], tuple[float, float]]]:
+def calculate_borders(top_left: Point, width: float, height: float) -> list[Line]:
     x, y = top_left
     borders = [
         ((x, y), (x + width, y)),  # Top

@@ -2,6 +2,7 @@ import random
 from enum import Enum
 
 from project import utils
+from project.types import *
 
 
 class Direction(Enum):
@@ -31,8 +32,8 @@ class MapTile:
         self.to_direction = to_direction
 
         # self._borders is for borders info without considering whether it should be drawn or not
-        self._borders: list[tuple[tuple[int, int], tuple[int, int]]] = []
-        self.borders: list[tuple[tuple[int, int], tuple[int, int]] | None] = []
+        self._borders: list[Line] = []
+        self.borders: list[Line | None] = []
 
     def finish_line(self):
         match self.to_direction:
@@ -73,7 +74,7 @@ class MapTile:
         self.borders[2] = self._determine_border(self._borders[2], Direction.DOWN)
         self.borders[3] = self._determine_border(self._borders[3], Direction.LEFT)
 
-    def _determine_border(self, line: tuple[tuple[float, float], tuple[float, float]], direction: Direction):
+    def _determine_border(self, line: Line, direction: Direction):
         border = line
         if direction in [self.from_direction, self.to_direction]:
             border = None

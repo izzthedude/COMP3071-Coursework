@@ -4,23 +4,12 @@ import random
 import numpy as np
 
 from project import enums
-from project.models import Vehicle, VehicleData
-
-
-def relu(inputs: np.ndarray) -> np.ndarray:
-    # Rectified Linear Unit
-    return np.maximum(0, inputs)
-
-
-def exp_decay(value: float, multiplier: float, power: float):
-    # Referenced from https://math.stackexchange.com/questions/2479176/exponential-decay-as-input-goes-to-0
-    return math.e ** (multiplier / (value ** power))
+from project.models import VehicleData
+from project.types import *
 
 
 class NavigatorAgent:
-    def __init__(self, vehicle: Vehicle):
-        self._vehicle = vehicle
-
+    def __init__(self):
         self.input_size: int = 6
         self.num_hlayers: int = 2
         self.num_hneurons: int = 5
@@ -53,6 +42,44 @@ class NavigatorAgent:
         last_activations = np.tanh(last_outputs)
         return last_activations
 
+    def to_genome(self) -> Genome:
+        flattened = []
+        for layer in self.weights:
+            flattened += layer.flatten().tolist()
+        return flattened
+
+    def from_genome(self, genome: Genome):
+        last_index = 0
+        inputs_to_hidden = []
+        for i in range(0, self.input_size):
+            start = i * self.num_hneurons
+            end = start + self.num_hneurons
+            inputs_to_hidden.append(genome[start:end])
+            last_index = end
+
+        hidden_to_hidden = []
+        for i in range(0, self.num_hlayers - 1):
+            layer = []
+            for j in range(0, self.num_hneurons):
+                start = last_index
+                end = start + self.num_hneurons
+                layer.append(genome[start:end])
+                last_index = end
+            hidden_to_hidden.append(layer)
+
+        hidden_to_output = []
+        for i in range(0, self.num_hneurons):
+            start = last_index
+            end = start + self.output_size
+            hidden_to_output.append(genome[start:end])
+            last_index = end
+
+        return [
+            np.array(inputs_to_hidden),  # Inputs to hidden
+            *[np.array(layer) for layer in hidden_to_hidden],  # Hidden to hidden
+            np.array(hidden_to_output)  # Hidden to output
+        ]
+
 
 class GeneticAlgorithm:
     @staticmethod
@@ -68,7 +95,7 @@ class GeneticAlgorithm:
         return out
 
     @staticmethod
-    def selection_pair(population: list[list[float]], fitnesses: list[float]) -> tuple[float, float]:
+    def selection_pair(population: Population, fitnesses: list[float]) -> tuple[Genome, Genome]:
         if not sum(fitnesses):  # If weights are all zero
             return random.choices(population=population, k=2)
 
@@ -79,7 +106,7 @@ class GeneticAlgorithm:
         )
 
     @staticmethod
-    def crossover(genome1: list[float], genome2: list[float]) -> tuple[list[float], list[float]]:
+    def crossover(genome1: Genome, genome2: Genome) -> tuple[Genome, Genome]:
         length = len(genome1)
         if length != len(genome2):
             raise ValueError(f"Length of given gnomes are not equal. {length} != {len(genome2)}")
@@ -91,7 +118,7 @@ class GeneticAlgorithm:
         return genome1[0:index] + genome2[index:], genome2[0:index] + genome1[index:]
 
     @staticmethod
-    def mutation(genome: list[float], mutation_chance: float, mutation_rate: float) -> list[float]:
+    def mutation(genome: Genome, mutation_chance: float, mutation_rate: float) -> Genome:
         mutated = genome.copy()
         for i in range(len(genome)):
             if random.random() < mutation_chance:
@@ -101,70 +128,39 @@ class GeneticAlgorithm:
         return mutated
 
     @staticmethod
-    def next_generation(datas: list[VehicleData], mutation_chance: float = 0.4, mutation_rate: float = 0.2):
-        # Sort data by fitness function
+    def next_generation(population: Population, datas: list[VehicleData], carry_over: float,
+                        mutation_chance: float, mutation_rate: float) -> Population:
+        # Sort population by fitness function
         fitnesses = [GeneticAlgorithm.fitness(data) for data in datas]
-        sorted_datas = sorted(
-            enumerate(datas),
+        sorted_population = sorted(
+            enumerate(population),
             key=lambda enum: fitnesses[enum[0]],
             reverse=True
         )
-        sorted_datas = [data for i, data in sorted_datas]
-        population = [data.genome for data in sorted_datas]
+        sorted_population = [pop for i, pop in sorted_population]
 
-        # Produce next generation from the top 20%
-        num = int(len(population) * 0.25)
-        next_generation = population[:num]
-        while len(next_generation) < len(population):
-            # Only select a pair from the 20%
-            parents = GeneticAlgorithm.selection_pair(population, fitnesses)
+        # Carry over the top carry_over% of the population
+        num = int(len(sorted_population) * carry_over)
+        next_generation: Population = sorted_population[:num]
+        while len(next_generation) < len(sorted_population):
+            parents = GeneticAlgorithm.selection_pair(sorted_population, fitnesses)
             child_a, child_b = GeneticAlgorithm.crossover(*parents)
             child_a = GeneticAlgorithm.mutation(child_a, mutation_chance, mutation_rate)
             child_b = GeneticAlgorithm.mutation(child_b, mutation_chance, mutation_rate)
             next_generation += [child_a, child_b]
 
         # For odd population sizes
-        if len(next_generation) > len(population):
+        if len(next_generation) > len(sorted_population):
             next_generation = next_generation[:-1]
 
-        return sorted_datas, next_generation
+        return next_generation
 
-    @staticmethod
-    def weights_to_genome(nn: NavigatorAgent):
-        flattened = []
-        for layer in nn.weights:
-            flattened += layer.flatten().tolist()
-        return flattened
 
-    @staticmethod
-    def genome_to_weights(nn: NavigatorAgent, genome: list):
-        last_index = 0
-        inputs_to_hidden = []
-        for i in range(0, nn.input_size):
-            start = i * nn.num_hneurons
-            end = start + nn.num_hneurons
-            inputs_to_hidden.append(genome[start:end])
-            last_index = end
+def relu(inputs: np.ndarray) -> np.ndarray:
+    # Rectified Linear Unit
+    return np.maximum(0, inputs)
 
-        hidden_to_hidden = []
-        for i in range(0, nn.num_hlayers - 1):
-            layer = []
-            for j in range(0, nn.num_hneurons):
-                start = last_index
-                end = start + nn.num_hneurons
-                layer.append(genome[start:end])
-                last_index = end
-            hidden_to_hidden.append(layer)
 
-        hidden_to_output = []
-        for i in range(0, nn.num_hneurons):
-            start = last_index
-            end = start + nn.output_size
-            hidden_to_output.append(genome[start:end])
-            last_index = end
-
-        return [
-            np.array(inputs_to_hidden),  # Inputs to hidden
-            *[np.array(layer) for layer in hidden_to_hidden],  # Hidden to hidden
-            np.array(hidden_to_output)  # Hidden to output
-        ]
+def exp_decay(value: float, multiplier: float, power: float):
+    # Referenced from https://math.stackexchange.com/questions/2479176/exponential-decay-as-input-goes-to-0
+    return math.e ** (multiplier / (value ** power))

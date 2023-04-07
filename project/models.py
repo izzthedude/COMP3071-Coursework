@@ -1,8 +1,9 @@
 import math
-from dataclasses import dataclass, asdict, field
+from dataclasses import dataclass
 
 from project import enums
 from project import utils
+from project.types import *
 
 
 class Wheel:
@@ -28,7 +29,7 @@ class Sensor:
     def line_end(self, angle_offset: float = 0):
         return utils.point_on_circle(self.line_start(), self.sense_length, self.sense_angle + angle_offset)
 
-    def intersects(self, line: tuple[tuple[int, int], tuple[int, int]], angle_offset: float = 0):
+    def intersects(self, line: Line, angle_offset: float = 0):
         sensor_line = (self.line_start(), self.line_end(angle_offset))
 
         intersection_point = utils.intersects(sensor_line, line)
@@ -126,7 +127,7 @@ class Vehicle:
         return [(self._calculate_position(angle1, distance1), self._calculate_position(angle2, distance2))
                 for (angle1, distance1), (angle2, distance2) in self._borders_info]
 
-    def collides(self, line: tuple[tuple[float, float], tuple[float, float]]):
+    def collides(self, line: Line):
         for line2 in self.borders():
             if intersection := utils.intersects(line2, line):
                 return intersection[0], intersection[1]
@@ -184,7 +185,6 @@ class Vehicle:
 
 @dataclass
 class VehicleData:
-    vehicle: Vehicle
     intersections: list[tuple[float, float, float]]
     collision: tuple | None = None
     displacement_start: float = 0.0
@@ -192,7 +192,6 @@ class VehicleData:
     is_finished: bool = False
     start_time: float = 0.0
     time_taken: float = 0.0
-    genome: list[float] = field(default=lambda: [])
 
     def reset(self):
         self.collision = None
@@ -201,12 +200,3 @@ class VehicleData:
         self.is_finished = False
         self.start_time = 0.0
         self.time_taken = 0.0
-
-    def as_dict(self):
-        return asdict(self)
-
-    def fitness_data(self):
-        return self.displacement_start, self.displacement_goal, self.is_finished, self.time_taken
-
-    def __repr__(self):
-        return repr((self.displacement_start, self.displacement_goal, self.is_finished, self.time_taken))

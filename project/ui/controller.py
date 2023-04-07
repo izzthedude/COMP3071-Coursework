@@ -17,7 +17,6 @@ class AppController(QObject):
 
         self._environment = environment
         self._mapgen = environment.mapgen
-        self._vehicles: dict[Vehicle, VehicleData] = environment.vehicle_datas
 
         self._is_running: bool = False
 
@@ -146,7 +145,7 @@ class AppController(QObject):
         self._environment.resize_on_success = value
 
     def _on_proceed_nextgen(self):
-        self._environment.proceed_next_gen()
+        self._environment.end_current_run(True, True)
 
     def _on_save_best_model(self):
         self._environment.on_save_best_model()
@@ -169,6 +168,5 @@ class AppController(QObject):
         self._panel.mutation_chance_spinbox.setValue(self._environment.mutation_chance)
         self._panel.mutation_rate_spinbox.setValue(self._environment.mutation_rate)
         self._panel.mutation_chance_spinbox.setDisabled(self._environment.dynamic_mutation)
-        self._panel.mutation_rate_spinbox.setDisabled(self._environment.dynamic_mutation)
         self._canvas.is_running = self._is_running
         self._canvas.update()

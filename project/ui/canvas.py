@@ -49,7 +49,7 @@ class Canvas(QWidget):
         p.restore()
 
         # Draw vehicles
-        for vehicle, data in self._env.vehicle_datas.items():
+        for vehicle, data in self._env.datas.items():
             # Draw vehicle's main body
             p.save()
             p.translate(vehicle.x, vehicle.y)
