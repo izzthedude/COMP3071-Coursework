@@ -130,7 +130,7 @@ class GeneticAlgorithm:
     @staticmethod
     def next_generation(population: Population, datas: list[VehicleData], carry_over: float,
                         mutation_chance: float, mutation_rate: float) -> Population:
-        # Sort population by fitness function
+        # Sort population by fitness
         fitnesses = [GeneticAlgorithm.fitness(data) for data in datas]
         sorted_population = sorted(
             enumerate(population),
@@ -142,15 +142,15 @@ class GeneticAlgorithm:
         # Carry over the top carry_over% of the population
         num = int(len(sorted_population) * carry_over)
         next_generation: Population = sorted_population[:num]
-        while len(next_generation) < len(sorted_population):
-            parents = GeneticAlgorithm.selection_pair(sorted_population, fitnesses)
+        while len(next_generation) < len(population):
+            parents = GeneticAlgorithm.selection_pair(population, fitnesses)
             child_a, child_b = GeneticAlgorithm.crossover(*parents)
             child_a = GeneticAlgorithm.mutation(child_a, mutation_chance, mutation_rate)
             child_b = GeneticAlgorithm.mutation(child_b, mutation_chance, mutation_rate)
             next_generation += [child_a, child_b]
 
         # For odd population sizes
-        if len(next_generation) > len(sorted_population):
+        if len(next_generation) > len(population):
             next_generation = next_generation[:-1]
 
         return next_generation
