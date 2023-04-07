@@ -68,10 +68,16 @@ class Panel(QScrollArea):
         self._agent_section.add_row("", self.save_best_btn)
         self._agent_section.add_row("", self.load_model_btn)
 
-        self.layout().addWidget(self._general_section)
-        self.layout().addWidget(self._map_section)
-        self.layout().addWidget(self._vehicle_section)
-        self.layout().addWidget(self._agent_section)
+        self.addWidget(self._general_section)
+        self.addWidget(self._map_section)
+        self.addWidget(self._vehicle_section)
+        self.addWidget(self._agent_section)
+
+        for widget in self.findChildren(QWidget):
+            widget.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+
+    def addWidget(self, widget: QWidget):
+        self.layout().addWidget(widget)
 
 
 class _Section(QWidget):
