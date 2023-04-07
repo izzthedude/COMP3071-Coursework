@@ -97,6 +97,9 @@ class MainWindow(QMainWindow):
     def _on_regenerate(self):
         self._environment.on_regenerate()
 
+    def _on_sensor_length_changed(self, value: int):
+        enums.SENSOR_LENGTH = value
+
     def _on_max_speed_changed(self, value: int):
         enums.VEHICLE_MAXSPEED = value
 
@@ -151,14 +154,15 @@ class MainWindow(QMainWindow):
         self._panel.map_size_spinbox.setValue(self._mapgen.get_map_size())
 
         # Vehicle
+        self._panel.sensor_length_spinbox.setRange(10, enums.CANVAS_SIZE)
+        self._panel.sensor_length_spinbox.setSingleStep(10)
+        self._panel.sensor_length_spinbox.setValue(enums.SENSOR_LENGTH)
         self._panel.vehicle_maxspeed_spinbox.setRange(1, 50)
-        self._panel.vehicle_maxspeed_spinbox.setSingleStep(1)
         self._panel.vehicle_maxspeed_spinbox.setValue(enums.VEHICLE_MAXSPEED)
         self._panel.dspeed_spinbox.setRange(0.1, 5.0)
         self._panel.dspeed_spinbox.setSingleStep(0.1)
         self._panel.dspeed_spinbox.setValue(enums.VEHICLE_DSPEED)
         self._panel.dangle_spinbox.setRange(1, 20)
-        self._panel.dangle_spinbox.setSingleStep(1)
         self._panel.dangle_spinbox.setValue(enums.VEHICLE_DANGLE)
 
         # Agent
@@ -187,6 +191,7 @@ class MainWindow(QMainWindow):
         self._panel.regenerate_button.clicked.connect(self._on_regenerate)
 
         # Vehicle
+        self._panel.sensor_length_spinbox.valueChanged.connect(self._on_sensor_length_changed)
         self._panel.vehicle_maxspeed_spinbox.valueChanged.connect(self._on_max_speed_changed)
         self._panel.dspeed_spinbox.valueChanged.connect(self._on_dspeed_changed)
         self._panel.dangle_spinbox.valueChanged.connect(self._on_dangle_changed)

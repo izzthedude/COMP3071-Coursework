@@ -36,11 +36,13 @@ class Panel(QScrollArea):
 
         # Vehicle Settings
         self._vehicle_section = _Section("Vehicle")
+        self.sensor_length_spinbox = QSpinBox()
         self.vehicle_maxspeed_spinbox = QSpinBox()
         self.dspeed_spinbox = QDoubleSpinBox()
         self.dangle_spinbox = QSpinBox()
         self.vehicle_reset_btn = QPushButton("Reset Vehicles")
 
+        self._vehicle_section.add_row("Sensor Length", self.sensor_length_spinbox)
         self._vehicle_section.add_row("Max Speed", self.vehicle_maxspeed_spinbox)
         self._vehicle_section.add_row("Change of Speed", self.dspeed_spinbox)
         self._vehicle_section.add_row("Change of Angle", self.dangle_spinbox)

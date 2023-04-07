@@ -20,14 +20,13 @@ class Sensor:
         self.x = x
         self.y = y
         self.size = size
-        self.sense_length = 200
         self.sense_angle = sense_angle  # In RADIANS
 
     def line_start(self):
         return self.x, self.y
 
     def line_end(self, angle_offset: float = 0):
-        return utils.point_on_circle(self.line_start(), self.sense_length, self.sense_angle + angle_offset)
+        return utils.point_on_circle(self.line_start(), enums.SENSOR_LENGTH, self.sense_angle + angle_offset)
 
     def intersects(self, line: Line, angle_offset: float = 0):
         sensor_line = (self.line_start(), self.line_end(angle_offset))
@@ -66,14 +65,15 @@ class Vehicle:
         sensor_x = self.x + self.width / 2
         end_y = self.y + self.height / 2
         y_offset = end_y - self.height
+        inset = 2
         front_sense_angle = math.radians(30)
         side_sense_angle = math.radians(60)
         self.sensors: list[Sensor] = [
-            Sensor(sensor_x, (end_y - y_offset) * 0.25 + y_offset, sensor_size, -front_sense_angle),  # Front left
-            Sensor(sensor_x, (end_y - y_offset) * 0.50 + y_offset, sensor_size, 0),  # Front center
-            Sensor(sensor_x, (end_y - y_offset) * 0.75 + y_offset, sensor_size, front_sense_angle),  # Front right
-            Sensor(self.x, self.y + self.height / 2, sensor_size, side_sense_angle),  # Right
-            Sensor(self.x, self.y - self.height / 2, sensor_size, -side_sense_angle),  # Left
+            Sensor(sensor_x - inset, (end_y - y_offset) * 0.25 + y_offset, sensor_size, -front_sense_angle),  # Front left
+            Sensor(sensor_x - inset, (end_y - y_offset) * 0.50 + y_offset, sensor_size, 0),  # Front center
+            Sensor(sensor_x - inset, (end_y - y_offset) * 0.75 + y_offset, sensor_size, front_sense_angle),  # Front right
+            Sensor(self.x, self.y + self.height / 2 - inset, sensor_size, side_sense_angle),  # Right
+            Sensor(self.x, self.y - self.height / 2 + inset, sensor_size, -side_sense_angle),  # Left
         ]
 
         # Recalibrate positions

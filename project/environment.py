@@ -208,7 +208,7 @@ class Environment:
                             first_intersected = True
                             break
                         else:
-                            intersections[sensor] = (*sensor.line_end(vehicle.theta), sensor.sense_length)
+                            intersections[sensor] = (*sensor.line_end(vehicle.theta), enums.SENSOR_LENGTH)
 
         return list(intersections.values()), collision
 

@@ -4,17 +4,18 @@ from PySide6.QtCore import *
 from PySide6.QtGui import *
 from PySide6.QtWidgets import *
 
-from project.enums import CANVAS_SIZE
+from project import enums
 from project.environment import Environment
 from project.map_gen import MapTile
 from project.models import Vehicle, Wheel, Sensor
+from project.types import *
 
 
 class Canvas(QWidget):
     def __init__(self, environment: Environment, is_running: bool, parent: QObject = None):
         super().__init__(parent)
 
-        self.setFixedSize(CANVAS_SIZE, CANVAS_SIZE)
+        self.setFixedSize(enums.CANVAS_SIZE, enums.CANVAS_SIZE)
         self._env: Environment = environment
         self.is_running: bool = is_running
 
@@ -86,10 +87,10 @@ class Canvas(QWidget):
             # Draw sensor lines
             p.save()
             for i in range(len(vehicle.sensors)):
-                length = vehicle.sensors[i].sense_length
-                if data.intersections and data.intersections[i]:
-                    _, _, length = data.intersections[i]
-                self._draw_sensor_line(vehicle, vehicle.sensors[i], length, p)
+                # TODO (low): Find out how to update sensor length in real time, instead of on ticks
+                *point, _ = data.intersections[i]
+                if not data.collision:  # Only draw the ones that haven't collided, to reduce visual mess
+                    self._draw_sensor_line(vehicle, vehicle.sensors[i], point, p)
             p.restore()
 
             # Draw sensors
@@ -140,15 +141,15 @@ class Canvas(QWidget):
             "black"
         )
 
-    def _draw_sensor_line(self, vehicle: Vehicle, sensor: Sensor, length: float, painter: QPainter):
+    def _draw_sensor_line(self, vehicle: Vehicle, sensor: Sensor, end: Point, painter: QPainter):
         # Draw sensor lines
         painter.setPen("red")
         painter.setOpacity(0.4)
 
         line = QLineF()
         line.setP1(QPointF(*sensor.line_start()))
+        line.setP2(QPointF(*end))
         line.setAngle(math.degrees(-vehicle.theta - sensor.sense_angle))
-        line.setLength(length)
         painter.drawLine(line)
         painter.setOpacity(1)
 
