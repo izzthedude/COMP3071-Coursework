@@ -7,12 +7,12 @@ from project import enums
 from project.models import Vehicle, VehicleData
 
 
-def _relu(inputs: np.ndarray) -> np.ndarray:
+def relu(inputs: np.ndarray) -> np.ndarray:
     # Rectified Linear Unit
     return np.maximum(0, inputs)
 
 
-def _exp_decay(value: float, multiplier: float, power: float):
+def exp_decay(value: float, multiplier: float, power: float):
     # Referenced from https://math.stackexchange.com/questions/2479176/exponential-decay-as-input-goes-to-0
     return math.e ** (multiplier / (value ** power))
 
@@ -39,13 +39,13 @@ class NavigatorAgent:
     def _forward(self, inputs: np.ndarray | list) -> np.ndarray | list:
         # Input to first hidden layer
         houtputs = np.dot(inputs, self.weights[0])
-        hactivations = _relu(houtputs)
+        hactivations = relu(houtputs)
         self._hidden_activations = [hactivations]
 
         # Iterate through all hidden layers
         for i in range(1, self.num_hlayers):
             houtputs = np.dot(hactivations, self.weights[i])
-            hactivations = _relu(houtputs)
+            hactivations = relu(houtputs)
             self._hidden_activations.append(hactivations)
 
         # Output layer
@@ -64,7 +64,7 @@ class GeneticAlgorithm:
             # You can visualise this function over at https://www.desmos.com/calculator
             multiplier = 2  # HIGHER = more influence
             power = 0.5  # LOWER = more influence
-            out = _exp_decay(data.time_taken, multiplier, power) + ratio
+            out = exp_decay(data.time_taken, multiplier, power) + ratio
         return out
 
     @staticmethod
@@ -103,13 +103,14 @@ class GeneticAlgorithm:
     @staticmethod
     def next_generation(datas: list[VehicleData], mutation_chance: float = 0.4, mutation_rate: float = 0.2):
         # Sort data by fitness function
+        fitnesses = [GeneticAlgorithm.fitness(data) for data in datas]
         sorted_datas = sorted(
-            datas,
-            key=lambda data: GeneticAlgorithm.fitness(data),
+            enumerate(datas),
+            key=lambda enum: fitnesses[enum[0]],
             reverse=True
         )
+        sorted_datas = [data for i, data in sorted_datas]
         population = [data.genome for data in sorted_datas]
-        fitnesses = [GeneticAlgorithm.fitness(data) for data in sorted_datas]
 
         # Produce next generation from the top 20%
         num = int(len(population) * 0.25)
@@ -126,7 +127,7 @@ class GeneticAlgorithm:
         if len(next_generation) > len(population):
             next_generation = next_generation[:-1]
 
-        return next_generation
+        return sorted_datas, next_generation
 
     @staticmethod
     def weights_to_genome(nn: NavigatorAgent):

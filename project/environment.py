@@ -1,11 +1,12 @@
+import math
 import random
 import time
 
 from project import enums
+from project import utils
 from project.agent import NavigatorAgent, GeneticAlgorithm as GA
 from project.map_gen import MapGenerator, MapTile, Direction
 from project.models import Vehicle, VehicleData
-from project.utils import distance_2p
 
 
 class Environment:
@@ -33,8 +34,11 @@ class Environment:
         self.current_map_success: int = 0
         self.resize_on_success: int = 3
         self.current_mapsize_success: int = 0
-        self.mutation_chance: float = 0.25
-        self.mutation_rate: float = 0.05
+        self.dynamic_mutation: bool = True
+        self.mutation_chance_domain = (0.01, 0.40)
+        self.mutation_rate_domain = (0.05, 0.20)
+        self.mutation_chance: float = self.mutation_chance_domain[1]
+        self.mutation_rate: float = self.mutation_rate_domain[0]
 
         self._is_first_tick: bool = True
         self.generation: int = 0
@@ -128,10 +132,21 @@ class Environment:
         for i in range(len(datas)):
             datas[i].genome = population[i]
 
-        next_generation = GA.next_generation(datas, self.mutation_chance, self.mutation_rate)
+        fitted_datas, next_generation = GA.next_generation(datas, self.mutation_chance, self.mutation_rate)
         for vehicle, genome in zip(self.vehicles, next_generation):
             agent = self.vehicle_agents[vehicle]
             agent.weights = GA.genome_to_weights(agent, genome)
+
+        if self.dynamic_mutation:
+            top = fitted_datas[:4]
+            avg_fitness = utils.average([GA.fitness(data) for data in top])
+            any_finished = any(data.is_finished for data in top)
+
+            self.mutation_chance = utils.squash(math.tanh(1 / avg_fitness), self.mutation_chance_domain)
+            if not any_finished:
+                self._change_mutation_rate(0.001)
+            else:
+                self._change_mutation_rate(-0.0002)
 
         self.generation += 1
 
@@ -156,18 +171,6 @@ class Environment:
         self.mapgen.set_map_size(value)
         self.mapgen.set_tile_size(enums.CANVAS_SIZE / value)
 
-    def on_mutation_chance_changed(self, value: float):
-        self.mutation_chance = value
-
-    def on_mutation_rate_changed(self, value: float):
-        self.mutation_rate = value
-
-    def on_success_regen_changed(self, times: int):
-        self.regen_on_success = times
-
-    def on_success_resize_changed(self, times: int):
-        self.resize_on_success = times
-
     def on_save_best_model(self):
         pass
 
@@ -183,7 +186,7 @@ class Environment:
     def _closest_tiles(self, vehicle: Vehicle):
         def distance(tile: MapTile):
             tile_center = tile.x + (tile.size / 2), tile.y + (tile.size / 2)
-            return distance_2p(tile_center, (vehicle.x, vehicle.y))
+            return utils.distance_2p(tile_center, (vehicle.x, vehicle.y))
 
         return sorted(self.mapgen.get_tiles(), key=distance)
 
@@ -213,5 +216,12 @@ class Environment:
     def _calculate_vehicle_data(self, vehicle: Vehicle):
         data = self.vehicle_datas[vehicle]
         data.intersections, data.collision = self._find_sensor_intersections(vehicle)
-        data.displacement_start = distance_2p(self._calculate_vehicle_start(), vehicle.pos())
-        data.displacement_goal = distance_2p(self.mapgen.get_tiles()[-1].center(), vehicle.pos())
+        data.displacement_start = utils.distance_2p(self._calculate_vehicle_start(), vehicle.pos())
+        data.displacement_goal = utils.distance_2p(self.mapgen.get_tiles()[-1].center(), vehicle.pos())
+
+    def _change_mutation_rate(self, change: float):
+        self.mutation_rate = utils.change_cutoff(
+            self.mutation_rate,
+            change,
+            *self.mutation_rate_domain
+        )

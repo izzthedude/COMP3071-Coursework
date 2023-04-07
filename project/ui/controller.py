@@ -44,10 +44,11 @@ class AppController(QObject):
         self._panel.dangle_spinbox.setSingleStep(1)
         self._panel.dangle_spinbox.setValue(enums.VEHICLE_DANGLE)
         self._panel.learning_mode_checkbox.setChecked(self._environment.learning_mode)
-        self._panel.mutation_chance_spinbox.setRange(0.0, 1.0)
+        self._panel.dynamic_mutation_checkbox.setChecked(self._environment.dynamic_mutation)
+        self._panel.mutation_chance_spinbox.setRange(*self._environment.mutation_chance_domain)
         self._panel.mutation_chance_spinbox.setSingleStep(0.01)
         self._panel.mutation_chance_spinbox.setValue(self._environment.mutation_chance)
-        self._panel.mutation_rate_spinbox.setRange(0.0, 1.0)
+        self._panel.mutation_rate_spinbox.setRange(*self._environment.mutation_rate_domain)
         self._panel.mutation_rate_spinbox.setSingleStep(0.01)
         self._panel.mutation_rate_spinbox.setValue(self._environment.mutation_rate)
         self._panel.regen_on_success_spinbox.setRange(0, 10)
@@ -67,6 +68,7 @@ class AppController(QObject):
         self._panel.dangle_spinbox.valueChanged.connect(self._on_dangle_changed)
         self._panel.vehicle_reset_btn.clicked.connect(self._on_reset_vehicle)
         self._panel.learning_mode_checkbox.stateChanged.connect(self._on_learning_mode_changed)
+        self._panel.dynamic_mutation_checkbox.stateChanged.connect(self._on_dynamic_mutation_changed)
         self._panel.mutation_chance_spinbox.valueChanged.connect(self._on_mutation_chance_changed)
         self._panel.mutation_rate_spinbox.valueChanged.connect(self._on_mutation_rate_changed)
         self._panel.regen_on_success_spinbox.valueChanged.connect(self._on_success_regen_changed)
@@ -104,8 +106,8 @@ class AppController(QObject):
     def _on_ticks_until_nextgen_changed(self, value: int):
         self._environment.ticks_per_gen = value
 
-    def _on_auto_reset_changed(self, check: bool):
-        self._environment.auto_reset = check
+    def _on_auto_reset_changed(self, check: int):
+        self._environment.auto_reset = bool(check)
 
     def _on_size_changed(self, value: int):
         self._environment.on_size_changed(value)
@@ -126,19 +128,22 @@ class AppController(QObject):
         self._environment.on_reset()
 
     def _on_learning_mode_changed(self, check: bool):
-        self._environment.learning_mode = check
+        self._environment.learning_mode = bool(check)
+
+    def _on_dynamic_mutation_changed(self, check: int):
+        self._environment.dynamic_mutation = bool(check)
 
     def _on_mutation_chance_changed(self, value: float):
-        self._environment.on_mutation_chance_changed(value)
+        self._environment.mutation_chance = value
 
     def _on_mutation_rate_changed(self, value: float):
-        self._environment.on_mutation_rate_changed(value)
+        self._environment.mutation_rate = value
 
     def _on_success_regen_changed(self, value: int):
-        self._environment.on_success_regen_changed(value)
+        self._environment.regen_on_success = value
 
     def _on_success_resize_changed(self, value: int):
-        self._environment.on_success_resize_changed(value)
+        self._environment.resize_on_success = value
 
     def _on_proceed_nextgen(self):
         self._environment.proceed_next_gen()
@@ -163,5 +168,7 @@ class AppController(QObject):
         self._panel.map_size_spinbox.setValue(self._environment.mapgen.get_map_size())
         self._panel.mutation_chance_spinbox.setValue(self._environment.mutation_chance)
         self._panel.mutation_rate_spinbox.setValue(self._environment.mutation_rate)
+        self._panel.mutation_chance_spinbox.setDisabled(self._environment.dynamic_mutation)
+        self._panel.mutation_rate_spinbox.setDisabled(self._environment.dynamic_mutation)
         self._canvas.is_running = self._is_running
         self._canvas.update()

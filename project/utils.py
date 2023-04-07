@@ -96,3 +96,18 @@ def calculate_borders(top_left: tuple[float, float], width: float, height: float
         ((x, y), (x, y + height))  # Left
     ]
     return borders
+
+
+def average(values: list[int | float]):
+    return sum(values) / len(values)
+
+
+def change_cutoff(value: float, change: float, minimum: float, maximum: float):
+    new = value + change
+    new = max(minimum, new)
+    new = min(new, maximum)
+    return new
+
+
+def squash(value: float, domain: tuple[float, float]):
+    return (value * (domain[1] - domain[0])) + min(domain)

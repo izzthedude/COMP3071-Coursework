@@ -49,6 +49,7 @@ class Panel(QScrollArea):
         # Agent Settings
         self._agent_section = _Section("Agent")
         self.learning_mode_checkbox = QCheckBox()
+        self.dynamic_mutation_checkbox = QCheckBox()
         self.mutation_chance_spinbox = QDoubleSpinBox()
         self.mutation_rate_spinbox = QDoubleSpinBox()
         self.regen_on_success_spinbox = QSpinBox()
@@ -58,6 +59,7 @@ class Panel(QScrollArea):
         self.load_model_btn = QPushButton("Load Model")
 
         self._agent_section.add_row("Learning Mode", self.learning_mode_checkbox)
+        self._agent_section.add_row("Dynamic Mutation", self.dynamic_mutation_checkbox)
         self._agent_section.add_row("Chance of Mutation", self.mutation_chance_spinbox)
         self._agent_section.add_row("Rate of Mutation", self.mutation_rate_spinbox)
         self._agent_section.add_row("Regen on Success", self.regen_on_success_spinbox)
