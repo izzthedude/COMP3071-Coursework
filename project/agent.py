@@ -12,19 +12,6 @@ def _relu(inputs: np.ndarray) -> np.ndarray:
     return np.maximum(0, inputs)
 
 
-def _sigmoid(inputs: np.ndarray) -> np.ndarray:
-    return 1 / (1 + np.exp(-inputs))
-
-
-def _desquash(value: float, domain: tuple[float, float]) -> float:
-    multiplier, offset = _squash_helper(domain)
-    return (value * multiplier) + offset
-
-
-def _squash_helper(domain: tuple[float, float]):
-    return abs(domain[1] - domain[0]), min(domain)
-
-
 def _exp_decay(value: float, multiplier: float, power: float):
     # Referenced from https://math.stackexchange.com/questions/2479176/exponential-decay-as-input-goes-to-0
     return math.e ** (multiplier / (value ** power))
@@ -34,11 +21,10 @@ class NavigatorAgent:
     def __init__(self, vehicle: Vehicle):
         self._vehicle = vehicle
 
-        self.input_size = 6
-        self.num_hlayers = 2
-        self.num_hneurons = 10
-        self.output_size = 2
-        self._total_layers = self.num_hlayers + 2
+        self.input_size: int = 6
+        self.num_hlayers: int = 2
+        self.num_hneurons: int = 5
+        self.output_size: int = 2
 
         self.weights: list[np.ndarray] = [
             0.1 * np.random.randn(self.input_size, self.num_hneurons),  # Input to first hidden layer
@@ -47,13 +33,10 @@ class NavigatorAgent:
         ]
 
     def predict(self, inputs: np.ndarray | list) -> tuple[float, float]:
-        dtheta_domain = (math.radians(-enums.VEHICLE_DANGLE), math.radians(enums.VEHICLE_DANGLE))
-        dspeed_domain = (-enums.VEHICLE_DSPEED, enums.VEHICLE_DSPEED)
+        dtheta, dspeed = self._forward(inputs)
+        return dtheta * math.radians(enums.VEHICLE_DANGLE), dspeed * enums.VEHICLE_DSPEED
 
-        out_dtheta, out_dspeed = self._forward(inputs)
-        return _desquash(out_dtheta, dtheta_domain), _desquash(out_dspeed, dspeed_domain)
-
-    def _forward(self, inputs: np.ndarray | list) -> np.ndarray:
+    def _forward(self, inputs: np.ndarray | list) -> np.ndarray | list:
         # Input to first hidden layer
         houtputs = np.dot(inputs, self.weights[0])
         hactivations = _relu(houtputs)
@@ -67,26 +50,28 @@ class NavigatorAgent:
 
         # Output layer
         last_outputs = np.dot(hactivations, self.weights[-1])
-        last_activations = _sigmoid(last_outputs)
+        last_activations = np.tanh(last_outputs)
         return last_activations
 
 
 class GeneticAlgorithm:
     @staticmethod
     def fitness(data: VehicleData) -> float:
-        displacement_start, displacement_goal, is_finished, time_taken = data.fitness_data()
-
-        ratio = math.sqrt(displacement_start) / math.sqrt(displacement_goal)
+        ratio = math.sqrt(data.displacement_start) / math.sqrt(data.displacement_goal)
         out = ratio
-        if is_finished:
+        if data.is_finished:
             # Values here are arbitrary. Adjust them to change how much the time should influence the fitness
+            # You can visualise this function over at https://www.desmos.com/calculator
             multiplier = 2  # HIGHER = more influence
             power = 0.5  # LOWER = more influence
-            out = _exp_decay(time_taken, multiplier, power) + ratio
+            out = _exp_decay(data.time_taken, multiplier, power) + ratio
         return out
 
     @staticmethod
     def selection_pair(population: list[list[float]], fitnesses: list[float]) -> tuple[float, float]:
+        if not sum(fitnesses):  # If weights are all zero
+            return random.choices(population=population, k=2)
+
         return random.choices(
             population=population,
             weights=fitnesses,
@@ -111,6 +96,8 @@ class GeneticAlgorithm:
         for i in range(len(genome)):
             if random.random() < mutation_chance:
                 mutated[i] += random.choice([-1, 1]) * mutation_rate
+                if random.random() < mutation_rate:
+                    mutated[i] *= -1
         return mutated
 
     @staticmethod
@@ -129,7 +116,7 @@ class GeneticAlgorithm:
         next_generation = population[:num]
         while len(next_generation) < len(population):
             # Only select a pair from the 20%
-            parents = GeneticAlgorithm.selection_pair(population[:num], fitnesses[:num])
+            parents = GeneticAlgorithm.selection_pair(population, fitnesses)
             child_a, child_b = GeneticAlgorithm.crossover(*parents)
             child_a = GeneticAlgorithm.mutation(child_a, mutation_chance, mutation_rate)
             child_b = GeneticAlgorithm.mutation(child_b, mutation_chance, mutation_rate)

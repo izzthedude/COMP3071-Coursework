@@ -24,16 +24,16 @@ class Environment:
             vehicle: NavigatorAgent(vehicle) for vehicle in self.vehicles
         }
 
-        self.tick_interval = 30
-        self.ticks_per_gen = 500
-        self.current_ticks_left = self.ticks_per_gen
+        self.tick_interval = 20
+        self.ticks_per_gen = 700
+        self.current_ticks = 0
         self.auto_reset: bool = True
         self.learning_mode: bool = True
         self.regen_on_success: int = 5
         self.current_map_success: int = 0
         self.resize_on_success: int = 3
         self.current_mapsize_success: int = 0
-        self.mutation_chance: float = 0.1
+        self.mutation_chance: float = 0.25
         self.mutation_rate: float = 0.05
 
         self._is_first_tick: bool = True
@@ -42,7 +42,7 @@ class Environment:
         self.num_successful_agents: int = 0
 
     def tick(self):
-        self.current_ticks_left -= 1
+        self.current_ticks += 1
 
         last_tile = self.mapgen.get_tiles()[-1]
         for vehicle in self.vehicles:
@@ -79,7 +79,7 @@ class Environment:
         if self._is_first_tick:
             self._is_first_tick = False
 
-        ticks_finished = self.current_ticks_left <= 0
+        ticks_finished = self.current_ticks >= self.ticks_per_gen
         all_collided_or_finished = all(data.collision or data.is_finished for data in self.vehicle_datas.values())
         done = ticks_finished or all_collided_or_finished
 
@@ -94,7 +94,7 @@ class Environment:
             # Check for current map success
             if self.current_map_success + 1 < self.regen_on_success:
                 self.current_map_success += 1
-            else:
+            elif self.regen_on_success > 0:
                 self.mapgen.regenerate()
                 self.current_map_success = 0
 
@@ -102,7 +102,7 @@ class Environment:
                 if self.current_mapsize_success + 1 < self.resize_on_success:
                     self.current_mapsize_success += 1
 
-                else:
+                elif self.resize_on_success > 0:
                     self.on_size_changed(random.randint(3, 11))
                     self.mapgen.regenerate()
                     self.current_mapsize_success = 0
@@ -137,7 +137,7 @@ class Environment:
 
     def on_reset(self):
         self._is_first_tick = True
-        self.current_ticks_left = self.ticks_per_gen
+        self.current_ticks = 0
         self.num_successful_agents = 0
 
         for vehicle, data in self.vehicle_datas.items():
@@ -149,7 +149,6 @@ class Environment:
     def on_regenerate(self):
         self.current_mapsize_success = 0
         self.current_map_success = 0
-        self.first_successful_generation = 0
         self.mapgen.regenerate()
         self.on_reset()
 

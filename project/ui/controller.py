@@ -38,17 +38,17 @@ class AppController(QObject):
         self._panel.vehicle_maxspeed_spinbox.setSingleStep(1)
         self._panel.vehicle_maxspeed_spinbox.setValue(enums.VEHICLE_MAXSPEED)
         self._panel.dspeed_spinbox.setRange(0.1, 5.0)
-        self._panel.dspeed_spinbox.setSingleStep(0.2)
+        self._panel.dspeed_spinbox.setSingleStep(0.1)
         self._panel.dspeed_spinbox.setValue(enums.VEHICLE_DSPEED)
-        self._panel.dangle_spinbox.setRange(1, 30)
-        self._panel.dangle_spinbox.setSingleStep(2)
+        self._panel.dangle_spinbox.setRange(1, 20)
+        self._panel.dangle_spinbox.setSingleStep(1)
         self._panel.dangle_spinbox.setValue(enums.VEHICLE_DANGLE)
         self._panel.learning_mode_checkbox.setChecked(self._environment.learning_mode)
         self._panel.mutation_chance_spinbox.setRange(0.0, 1.0)
-        self._panel.mutation_chance_spinbox.setSingleStep(0.05)
+        self._panel.mutation_chance_spinbox.setSingleStep(0.01)
         self._panel.mutation_chance_spinbox.setValue(self._environment.mutation_chance)
         self._panel.mutation_rate_spinbox.setRange(0.0, 1.0)
-        self._panel.mutation_rate_spinbox.setSingleStep(0.05)
+        self._panel.mutation_rate_spinbox.setSingleStep(0.01)
         self._panel.mutation_rate_spinbox.setValue(self._environment.mutation_rate)
         self._panel.regen_on_success_spinbox.setRange(0, 10)
         self._panel.regen_on_success_spinbox.setValue(self._environment.regen_on_success)
@@ -78,7 +78,7 @@ class AppController(QObject):
         self._ui_updater.start(1000 / 30)  # Canvas updates per second, adjust the denominator to the desired FPS.
 
     def _tick(self):
-        if not self._environment.current_ticks_left <= 0:
+        if not self._environment.current_ticks >= self._environment.ticks_per_gen:
             self._environment.tick()
         else:
             self._environment.end_current_run()

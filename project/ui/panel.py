@@ -1,11 +1,13 @@
 from PySide6.QtCore import *
 from PySide6.QtWidgets import *
 
+from project import enums
+
 
 class Panel(QScrollArea):
     def __init__(self, parent: QObject = None):
         super().__init__(parent)
-        self.setFixedSize(300, 1000)
+        self.setFixedSize(350, enums.CANVAS_SIZE)
 
         layout = QVBoxLayout()
         layout.setContentsMargins(5, 5, 5, 5)
