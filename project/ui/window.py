@@ -51,6 +51,9 @@ class MainWindow(QMainWindow):
         self._panel.mutation_chance_spinbox.setValue(self._env.mutation_chance)
         self._panel.mutation_rate_spinbox.setValue(self._env.mutation_rate)
         self._panel.mutation_chance_spinbox.setDisabled(self._env.dynamic_mutation)
+        self._panel.regen_n_runs_spinbox.blockSignals(True)
+        self._panel.regen_n_runs_spinbox.setValue(self._env.regen_n_runs)
+        self._panel.regen_n_runs_spinbox.blockSignals(False)
         self._canvas.is_running = self._is_running
         self._canvas.update()
 
@@ -124,10 +127,11 @@ class MainWindow(QMainWindow):
         self._env.mutation_rate = value
 
     def _on_success_regen_changed(self, value: int):
-        self._env.regen_on_success = value
+        self._env.regen_n_runs = value
+        self._env.initial_regen_runs = value
 
     def _on_success_resize_changed(self, value: int):
-        self._env.resize_on_success = value
+        self._env.resize_n_regens = value
 
     def _on_proceed_nextgen(self):
         self._env.end_current_run(True, True)
@@ -167,16 +171,18 @@ class MainWindow(QMainWindow):
         # Agent
         self._panel.learning_mode_checkbox.setChecked(self._env.learning_mode)
         self._panel.dynamic_mutation_checkbox.setChecked(self._env.dynamic_mutation)
-        self._panel.mutation_chance_spinbox.setRange(*self._env.mutation_chance_domain)
+        self._panel.mutation_chance_spinbox.setRange(0.01, 0.99)
         self._panel.mutation_chance_spinbox.setSingleStep(0.01)
         self._panel.mutation_chance_spinbox.setValue(self._env.mutation_chance)
-        self._panel.mutation_rate_spinbox.setRange(*self._env.mutation_rate_domain)
+        self._panel.mutation_rate_spinbox.setRange(0.01, 0.99)
         self._panel.mutation_rate_spinbox.setSingleStep(0.01)
         self._panel.mutation_rate_spinbox.setValue(self._env.mutation_rate)
-        self._panel.regen_on_success_spinbox.setRange(0, 10)
-        self._panel.regen_on_success_spinbox.setValue(self._env.regen_on_success)
-        self._panel.resize_on_success_spinbox.setRange(0, 10)
-        self._panel.resize_on_success_spinbox.setValue(self._env.resize_on_success)
+        self._panel.regen_n_runs_spinbox.setRange(0, 50)
+        self._panel.regen_n_runs_spinbox.setSingleStep(2)
+        self._panel.regen_n_runs_spinbox.setValue(self._env.regen_n_runs)
+        self._panel.resize_n_regens_spinbox.setRange(0, 50)
+        self._panel.resize_n_regens_spinbox.setSingleStep(2)
+        self._panel.resize_n_regens_spinbox.setValue(self._env.resize_n_regens)
 
     def _connect_panel_widgets(self):
         # General
@@ -201,8 +207,8 @@ class MainWindow(QMainWindow):
         self._panel.dynamic_mutation_checkbox.stateChanged.connect(self._on_dynamic_mutation_changed)
         self._panel.mutation_chance_spinbox.valueChanged.connect(self._on_mutation_chance_changed)
         self._panel.mutation_rate_spinbox.valueChanged.connect(self._on_mutation_rate_changed)
-        self._panel.regen_on_success_spinbox.valueChanged.connect(self._on_success_regen_changed)
-        self._panel.resize_on_success_spinbox.valueChanged.connect(self._on_success_resize_changed)
+        self._panel.regen_n_runs_spinbox.valueChanged.connect(self._on_success_regen_changed)
+        self._panel.resize_n_regens_spinbox.valueChanged.connect(self._on_success_resize_changed)
         self._panel.proceed_nextgen_btn.clicked.connect(self._on_proceed_nextgen)
 
     def _setup_layout(self):

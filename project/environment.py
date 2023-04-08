@@ -1,5 +1,4 @@
 import math
-import random
 
 from project import enums
 from project import utils
@@ -12,20 +11,21 @@ class Environment:
     def __init__(self):
         # Environment parameters
         self.tick_interval = 20
-        self.ticks_per_gen = 700
+        self.ticks_per_gen = 750
         self.auto_reset: bool = True
         self.learning_mode: bool = True
         self.dynamic_mutation: bool = True
-        self.mutation_chance_domain = (0.01, 0.40)
-        self.mutation_rate_domain = (0.05, 0.20)
+        self.mutation_chance_domain = (0.01, 0.40)  # Domains here are mainly for dynamic mutation use. Not UI.
+        self.mutation_rate_domain = (0.01, 0.20)
         self.mutation_chance: float = self.mutation_chance_domain[1]
-        self.mutation_rate: float = self.mutation_rate_domain[0]
-        self.regen_on_success: int = 5
-        self.resize_on_success: int = 3
+        self.mutation_rate: float = 0.05
+        self.regen_n_runs: int = 10
+        self.resize_n_regens: int = 4
 
         self.current_ticks = 0
-        self.current_map_success: int = 0
-        self.current_mapsize_success: int = 0
+        self.current_map_run: int = 0
+        self.current_mapsize_run: int = 0
+        self.initial_regen_runs = self.regen_n_runs
         self.carryover_percentage = 0.20
         self.current_best_vehicle: Vehicle | None = None
 
@@ -98,28 +98,31 @@ class Environment:
     def end_current_run(self, reset: bool = False, proceed_nextgen: bool = False):
         # If success
         if any(data.is_finished for data in self.vehicle_datas()):
-            # Check for current map success
-            if self.current_map_success + 1 < self.regen_on_success:
-                self.current_map_success += 1
+            if self.regen_n_runs != 0:
+                self.regen_n_runs = max(1, int(self.regen_n_runs * 0.8))
 
-            elif self.regen_on_success > 0:
-                self.mapgen.regenerate()
-                self.current_map_success = 0
-
-                # Check for current map SIZE success
-                if self.current_mapsize_success + 1 < self.resize_on_success:
-                    self.current_mapsize_success += 1
-
-                elif self.resize_on_success > 0:
-                    self.on_size_changed(random.randint(3, 11))
-                    self.mapgen.regenerate()
-                    self.current_mapsize_success = 0
-                    self.current_map_success = 0
-
-        # If failed
         else:
-            self.current_mapsize_success = 0
-            self.current_map_success = 0
+            if self.regen_n_runs != 0:
+                self.regen_n_runs = self.initial_regen_runs
+                self.current_mapsize_run = 0
+
+        # Update current map run
+        if self.current_map_run + 1 < self.regen_n_runs:
+            self.current_map_run += 1
+
+        elif self.regen_n_runs > 0:
+            self.current_map_run = 0
+
+            # Check for current map SIZE success
+            if self.current_mapsize_run + 1 < self.resize_n_regens:
+                self.current_mapsize_run += 1
+
+            elif self.resize_n_regens > 0:
+                self.on_size_changed(self.get_map_size() + 1)
+                self.current_map_run = 0
+                self.current_mapsize_run = 0
+
+            self.mapgen.regenerate()
 
         # Auto reset
         if self.auto_reset or reset:
@@ -162,14 +165,16 @@ class Environment:
             self._calculate_vehicle_data(vehicle)
 
     def on_regenerate(self):
-        self.current_mapsize_success = 0
-        self.current_map_success = 0
+        self.current_mapsize_run = 0
+        self.current_map_run = 0
         self.mapgen.regenerate()
         self.on_reset()
 
     def on_size_changed(self, value: int):
-        self.mapgen.set_map_size(value)
-        self.mapgen.set_tile_size(enums.CANVAS_SIZE / value)
+        change = value - self.get_map_size()
+        size = int(utils.change_cutoff(self.get_map_size(), change, 3, 11))
+        self.mapgen.set_map_size(size)
+        self.mapgen.set_tile_size(enums.CANVAS_SIZE / size)
 
     def get_map_size(self):
         return self.mapgen.map_size()

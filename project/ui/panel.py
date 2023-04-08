@@ -1,13 +1,10 @@
 from PySide6.QtCore import *
 from PySide6.QtWidgets import *
 
-from project import enums
-
 
 class Panel(QScrollArea):
     def __init__(self, parent: QObject = None):
         super().__init__(parent)
-        self.setFixedSize(350, enums.CANVAS_SIZE)
 
         layout = QVBoxLayout()
         layout.setContentsMargins(5, 5, 5, 5)
@@ -29,9 +26,13 @@ class Panel(QScrollArea):
         # Map Generation Settings
         self._map_section = _Section("Map Generation")
         self.map_size_spinbox = QSpinBox()
+        self.regen_n_runs_spinbox = QSpinBox()
+        self.resize_n_regens_spinbox = QSpinBox()
         self.regenerate_button = QPushButton("Regenerate Map")
 
         self._map_section.add_row("Size", self.map_size_spinbox)
+        self._map_section.add_row("Regenerate on N Runs", self.regen_n_runs_spinbox)
+        self._map_section.add_row("Resize on N Regenerations", self.resize_n_regens_spinbox)
         self._map_section.add_row("", self.regenerate_button)
 
         # Vehicle Settings
@@ -54,8 +55,6 @@ class Panel(QScrollArea):
         self.dynamic_mutation_checkbox = QCheckBox()
         self.mutation_chance_spinbox = QDoubleSpinBox()
         self.mutation_rate_spinbox = QDoubleSpinBox()
-        self.regen_on_success_spinbox = QSpinBox()
-        self.resize_on_success_spinbox = QSpinBox()
         self.proceed_nextgen_btn = QPushButton("Next Generation")
         self.save_best_btn = QPushButton("Save Best Model")
         self.load_model_btn = QPushButton("Load Model")
@@ -64,8 +63,6 @@ class Panel(QScrollArea):
         self._agent_section.add_row("Dynamic Mutation", self.dynamic_mutation_checkbox)
         self._agent_section.add_row("Chance of Mutation", self.mutation_chance_spinbox)
         self._agent_section.add_row("Rate of Mutation", self.mutation_rate_spinbox)
-        self._agent_section.add_row("Regen on Success", self.regen_on_success_spinbox)
-        self._agent_section.add_row("Resize on Success", self.resize_on_success_spinbox)
         self._agent_section.add_row("", self.proceed_nextgen_btn)
         self._agent_section.add_row("", self.save_best_btn)
         self._agent_section.add_row("", self.load_model_btn)
@@ -77,6 +74,8 @@ class Panel(QScrollArea):
 
         for widget in self.findChildren(QWidget):
             widget.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+
+        self.adjustSize()
 
     def addWidget(self, widget: QWidget):
         self.layout().addWidget(widget)
