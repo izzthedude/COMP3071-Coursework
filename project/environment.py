@@ -14,52 +14,51 @@ class Environment:
         # Environment parameters
         self.tick_interval = 20
         self.ticks_per_gen = 700
-        self.current_ticks = 0
         self.auto_reset: bool = True
         self.learning_mode: bool = True
-        self.regen_on_success: int = 5
-        self.current_map_success: int = 0
-        self.resize_on_success: int = 3
-        self.current_mapsize_success: int = 0
         self.dynamic_mutation: bool = True
         self.mutation_chance_domain = (0.01, 0.40)
         self.mutation_rate_domain = (0.05, 0.20)
         self.mutation_chance: float = self.mutation_chance_domain[1]
         self.mutation_rate: float = self.mutation_rate_domain[0]
-        self.carryover_percentage = 0.20
-        self.current_best_vehicle: Vehicle = None
-        self._is_first_tick: bool = True
+        self.regen_on_success: int = 5
+        self.resize_on_success: int = 3
 
-        # Generation info
+        self._is_first_tick: bool = True
+        self.current_ticks = 0
+        self.current_map_success: int = 0
+        self.current_mapsize_success: int = 0
+        self.carryover_percentage = 0.20
+        self.current_best_vehicle: Vehicle | None = None
+
         self.generation: int = 0
         self.first_successful_generation: int | None = None
-        self.num_successful_agents: int = 0
+        self.num_successful_agents: int = 0  # Currently unused but still keeping it just in case
 
         # Map
         map_size = 7
         self.mapgen = MapGenerator(enums.CANVAS_SIZE // map_size, map_size)
 
         # Initialise vehicles
-        start_x, start_y = self._calculate_vehicle_start()
-        self.vehicles = [Vehicle(start_x, start_y, enums.VEHICLE_SIZE, enums.VEHICLE_SIZE, 90)
-                         for _ in range(enums.NUM_POPULATION)]
+        x, y = self._calculate_vehicle_start()
+        vehicles = (Vehicle(x, y, enums.VEHICLE_SIZE, enums.VEHICLE_SIZE, 90) for _ in range(enums.NUM_POPULATION))
 
         # Initialise vehicles' agents and datas
-        self.agents: dict[Vehicle, NavigatorAgent] = {vehicle: NavigatorAgent() for vehicle in self.vehicles}
-        self.datas: dict[Vehicle, VehicleData] = {
-            vehicle: VehicleData(*self._find_sensor_intersections(vehicle))
-            for vehicle in self.vehicles}
+        self.vehicles: dict[Vehicle, tuple[NavigatorAgent, VehicleData]] = {
+            vehicle: (NavigatorAgent(), VehicleData(*self._find_sensor_intersections(vehicle)))
+            for vehicle in vehicles
+        }
 
     def tick(self):
         self.current_ticks += 1
 
-        last_tile = self.mapgen.get_tiles()[-1]
-        for vehicle in self.vehicles:
-            data = self.datas[vehicle]
-            if self._is_first_tick:
+        # Iterate through vehicles and do a bunch of calculations
+        last_tile = self.mapgen.tiles()[-1]
+        for vehicle, (agent, data) in self.vehicles.items():
+            if self._is_first_tick:  # TODO: use ticks instead of actual time
                 data.start_time = time.time()
 
-            # Only calculate for a vehicle that hasn't collided or finished
+            # Only calculate for vehicles that haven't collided or finished
             if not (data.collision or data.is_finished):
                 vehicle.move()
                 self._calculate_vehicle_data(vehicle)
@@ -80,23 +79,24 @@ class Environment:
                     if not self.first_successful_generation:
                         self.first_successful_generation = self.generation
 
-                inputs = [distance for _, _, distance in data.intersections] + [vehicle.speed()]
-                dtheta, dspeed = self.agents[vehicle].predict(inputs)
+                inputs = [distance for (_, _), distance in data.intersections] + [vehicle.speed()]
+                dtheta, dspeed = agent.predict(inputs)
                 vehicle.theta += dtheta
                 vehicle.change_speed(dspeed)
 
         # Get current best fit vehicle
-        fitness: list[tuple[Vehicle, float]] = [(vehicle, GA.fitness(data)) for vehicle, data in self.datas.items()]
+        fitness: list[tuple[Vehicle, float]] = [(vehicle, GA.fitness(data))
+                                                for vehicle, (_, data) in self.vehicles.items()]
         fitness.sort(key=lambda pair: pair[1], reverse=True)
         self.current_best_vehicle = fitness[0][0]
 
         if self._is_first_tick:
             self._is_first_tick = False
 
+        # Check if current run is done
         ticks_finished = self.current_ticks >= self.ticks_per_gen
-        all_collided_or_finished = all(data.collision or data.is_finished for data in self.datas.values())
+        all_collided_or_finished = all(data.collision or data.is_finished for data in self.vehicle_datas())
         done = ticks_finished or all_collided_or_finished
-
         if done:
             self.end_current_run()
 
@@ -104,10 +104,11 @@ class Environment:
 
     def end_current_run(self, reset: bool = False, proceed_nextgen: bool = False):
         # If success
-        if any(data.is_finished for data in self.datas.values()):
+        if any(data.is_finished for data in self.vehicle_datas()):
             # Check for current map success
             if self.current_map_success + 1 < self.regen_on_success:
                 self.current_map_success += 1
+
             elif self.regen_on_success > 0:
                 self.mapgen.regenerate()
                 self.current_map_success = 0
@@ -122,19 +123,21 @@ class Environment:
                     self.current_mapsize_success = 0
                     self.current_map_success = 0
 
-        # If no success
+        # If failed
         else:
             self.current_mapsize_success = 0
             self.current_map_success = 0
 
+        # Auto reset
         if self.auto_reset or reset:
             if self.learning_mode or proceed_nextgen:
                 self.on_generation_end()
             self.on_reset()
 
     def on_generation_end(self):
-        population = [self.agents[vehicle].to_genome() for vehicle in self.vehicles]
-        datas = [self.datas[vehicle] for vehicle in self.vehicles]
+        # Get next generation
+        population = [agent.to_genome() for agent in self.vehicle_agents()]
+        datas = self.vehicle_datas()
         next_generation = GA.next_generation(
             population, datas,
             self.carryover_percentage,
@@ -142,15 +145,15 @@ class Environment:
             self.mutation_rate)
         fitted_datas = sorted(datas, key=lambda data: GA.fitness(data), reverse=True)
 
-        for vehicle, genome in zip(self.vehicles, next_generation):
-            agent = self.agents[vehicle]
+        # Apply next generation to agents
+        for agent, genome in zip(self.vehicle_agents(), next_generation):
             agent.weights = agent.from_genome(genome)
 
+        # Adjust chance of mutation of dynamic mutation is True
         if self.dynamic_mutation:
             num = int(len(fitted_datas) * self.carryover_percentage)
             top = fitted_datas[:num]
             avg_fitness = utils.average([GA.fitness(data) for data in top])
-
             self.mutation_chance = utils.squash(math.tanh(1 / avg_fitness), self.mutation_chance_domain)
 
         self.generation += 1
@@ -160,7 +163,7 @@ class Environment:
         self.current_ticks = 0
         self.num_successful_agents = 0
 
-        for vehicle, data in self.datas.items():
+        for vehicle, (_, data) in self.vehicles.items():
             vehicle.x, vehicle.y = self._calculate_vehicle_start()
             vehicle.reset()
             data.reset()
@@ -176,6 +179,24 @@ class Environment:
         self.mapgen.set_map_size(value)
         self.mapgen.set_tile_size(enums.CANVAS_SIZE / value)
 
+    def get_map_size(self):
+        return self.mapgen.map_size()
+
+    def get_vehicles(self):
+        return tuple(vehicle for vehicle in self.vehicles.keys())
+
+    def vehicle_agent(self, vehicle: Vehicle):
+        return self.vehicles[vehicle][0]
+
+    def vehicle_agents(self):
+        return tuple(agent for agent, _ in self.vehicles.values())
+
+    def vehicle_data(self, vehicle: Vehicle):
+        return self.vehicles[vehicle][1]
+
+    def vehicle_datas(self):
+        return tuple(data for _, data in self.vehicles.values())
+
     def on_save_best_model(self):
         pass
 
@@ -183,7 +204,7 @@ class Environment:
         pass
 
     def _calculate_vehicle_start(self):
-        first_tile = self.mapgen.get_tiles()[0]
+        first_tile = self.mapgen.tiles()[0]
         x = first_tile.x + (first_tile.size / 2)
         y = enums.VEHICLE_SIZE / 2 + 10
         return x, y
@@ -193,7 +214,7 @@ class Environment:
             tile_center = tile.x + (tile.size / 2), tile.y + (tile.size / 2)
             return utils.distance_2p(tile_center, (vehicle.x, vehicle.y))
 
-        return sorted(self.mapgen.get_tiles(), key=distance)
+        return sorted(self.mapgen.tiles(), key=distance)
 
     def _find_sensor_intersections(self, vehicle: Vehicle):
         intersections = {}
@@ -214,15 +235,15 @@ class Environment:
                             first_intersected = True
                             break
                         else:
-                            intersections[sensor] = (*sensor.line_end(vehicle.theta), enums.SENSOR_LENGTH)
+                            intersections[sensor] = (sensor.end(vehicle.theta), enums.SENSOR_LENGTH)
 
         return list(intersections.values()), collision
 
     def _calculate_vehicle_data(self, vehicle: Vehicle):
-        data = self.datas[vehicle]
+        data = self.vehicle_data(vehicle)
         data.intersections, data.collision = self._find_sensor_intersections(vehicle)
         data.displacement_start = utils.distance_2p(self._calculate_vehicle_start(), vehicle.pos())
-        data.displacement_goal = utils.distance_2p(self.mapgen.get_tiles()[-1].center(), vehicle.pos())
+        data.displacement_goal = utils.distance_2p(self.mapgen.tiles()[-1].center(), vehicle.pos())
 
     def _change_mutation_rate(self, change: float):
         self.mutation_rate = utils.change_cutoff(

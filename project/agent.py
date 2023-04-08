@@ -10,11 +10,13 @@ from project.types import *
 
 class NavigatorAgent:
     def __init__(self):
+        # Topology
         self.input_size: int = 6
         self.num_hlayers: int = 2
         self.num_hneurons: int = 5
         self.output_size: int = 2
 
+        # Weights
         self.weights: list[np.ndarray] = [
             0.1 * np.random.randn(self.input_size, self.num_hneurons),  # Input to first hidden layer
             *[0.1 * np.random.randn(self.num_hneurons, self.num_hneurons) for _ in range(self.num_hlayers - 1)],
@@ -22,6 +24,7 @@ class NavigatorAgent:
         ]
 
     def predict(self, inputs: np.ndarray | list) -> tuple[float, float]:
+        # Return adjusted output
         dtheta, dspeed = self._forward(inputs)
         return dtheta * math.radians(enums.VEHICLE_DANGLE), dspeed * enums.VEHICLE_DSPEED
 
@@ -39,17 +42,20 @@ class NavigatorAgent:
 
         # Output layer
         last_outputs = np.dot(hactivations, self.weights[-1])
-        last_activations = np.tanh(last_outputs)
+        last_activations = np.tanh(last_outputs)  # Outputs are between -1 and 1
         return last_activations
 
     def to_genome(self) -> Genome:
+        # Flatten the weights into one big list of weights
         flattened = []
         for layer in self.weights:
             flattened += layer.flatten().tolist()
         return flattened
 
     def from_genome(self, genome: Genome):
+        # Convert a list of weights to the weights of this neural network with the correct topology
         last_index = 0
+
         inputs_to_hidden = []
         for i in range(0, self.input_size):
             start = i * self.num_hneurons
@@ -84,14 +90,18 @@ class NavigatorAgent:
 class GeneticAlgorithm:
     @staticmethod
     def fitness(data: VehicleData) -> float:
+        # The fitness will be the ratio between displacement from start and displacement from goal
         ratio = math.sqrt(data.displacement_start) / math.sqrt(data.displacement_goal)
         out = ratio
+
+        # If the vehicle has reached its goal, the time_taken to reach there also factors in
         if data.is_finished:
             # Values here are arbitrary. Adjust them to change how much the time should influence the fitness
             # You can visualise this function over at https://www.desmos.com/calculator
             multiplier = 2  # HIGHER = more influence
             power = 0.5  # LOWER = more influence
             out = exp_decay(data.time_taken, multiplier, power) + ratio
+
         return out
 
     @staticmethod
@@ -114,21 +124,24 @@ class GeneticAlgorithm:
         if length < 2:
             return genome1, genome2
 
+        # Crossover at random index
         index = random.randint(1, length - 1)
         return genome1[0:index] + genome2[index:], genome2[0:index] + genome1[index:]
 
     @staticmethod
     def mutation(genome: Genome, mutation_chance: float, mutation_rate: float) -> Genome:
-        mutated = genome.copy()
+        mutated = genome.copy()  # Avoid modifying given genome
+
         for i in range(len(genome)):
             if random.random() < mutation_chance:
                 mutated[i] += random.choice([-1, 1]) * mutation_rate
-                if random.random() < mutation_rate:
+                if random.random() < mutation_rate:  # Chance to flip the sign of the gene
                     mutated[i] *= -1
+
         return mutated
 
     @staticmethod
-    def next_generation(population: Population, datas: list[VehicleData], carry_over: float,
+    def next_generation(population: Population, datas: tuple[VehicleData], carry_over: float,
                         mutation_chance: float, mutation_rate: float) -> Population:
         # Sort population by fitness
         fitnesses = [GeneticAlgorithm.fitness(data) for data in datas]
@@ -162,5 +175,6 @@ def relu(inputs: np.ndarray) -> np.ndarray:
 
 
 def exp_decay(value: float, multiplier: float, power: float):
+    # Exponentially increase output as the input approaches 0
     # Referenced from https://math.stackexchange.com/questions/2479176/exponential-decay-as-input-goes-to-0
     return math.e ** (multiplier / (value ** power))

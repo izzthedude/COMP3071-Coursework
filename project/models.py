@@ -16,27 +16,28 @@ class Wheel:
 
 
 class Sensor:
-    def __init__(self, x: float, y: float, size: float, sense_angle: float):
+    def __init__(self, x: float, y: float, size: float, angle: float):
         self.x = x
         self.y = y
         self.size = size
-        self.sense_angle = sense_angle  # In RADIANS
+        self.theta = math.radians(angle)  # In RADIANS
 
-    def line_start(self):
+    def start(self) -> Point:
         return self.x, self.y
 
-    def line_end(self, angle_offset: float = 0):
-        return utils.point_on_circle(self.line_start(), enums.SENSOR_LENGTH, self.sense_angle + angle_offset)
+    def end(self, theta_offset: float = 0) -> Point:
+        return utils.point_on_circle(self.start(), enums.SENSOR_LENGTH, self.theta + theta_offset)
 
-    def intersects(self, line: Line, angle_offset: float = 0):
-        sensor_line = (self.line_start(), self.line_end(angle_offset))
+    def line(self, theta_offset: float = 0) -> Line:
+        return self.start(), self.end(theta_offset)
 
-        intersection_point = utils.intersects(sensor_line, line)
+    def intersects(self, line: Line, theta_offset: float = 0) -> tuple[Point, float] | None:
+        intersection_point = utils.intersects(self.line(theta_offset), line)
         if not intersection_point:
             return None
 
-        x, y = intersection_point
-        return x, y, utils.distance_2p(self.line_start(), (x, y))
+        point = intersection_point
+        return point, utils.distance_2p(self.start(), point)
 
     def __repr__(self):
         return f"Sensor({int(self.x)},{int(self.y)})"
@@ -65,8 +66,8 @@ class Vehicle:
         sensor_x = self.x + self.width / 2
         end_y = self.y + self.height / 2
         y_offset = end_y - self.height
-        front_sense_angle = math.radians(30)
-        side_sense_angle = math.radians(60)
+        front_sense_angle = 30
+        side_sense_angle = 60
         self.sensors: list[Sensor] = [
             Sensor(sensor_x, (end_y - y_offset) * 0.25 + y_offset, sensor_size, -front_sense_angle),  # Front left
             Sensor(sensor_x, (end_y - y_offset) * 0.50 + y_offset, sensor_size, 0),  # Front center
@@ -100,10 +101,10 @@ class Vehicle:
         # Recalculate positions of vehicle parts
         self._recalculate_parts()
 
-    def pos(self):
+    def pos(self) -> Point:
         return self.x, self.y
 
-    def speed(self):
+    def speed(self) -> float:
         return self.wheels[0].speed + self.wheels[1].speed
 
     def set_speed(self, speed: float):
@@ -121,12 +122,12 @@ class Vehicle:
         self.set_speed(0)
         self._recalculate_parts()
 
-    def borders(self):
+    def borders(self) -> list[Line]:
         # Returns the borders' positions relative to the vehicle's current position and angle
         return [(self._calculate_position(angle1, distance1), self._calculate_position(angle2, distance2))
                 for (angle1, distance1), (angle2, distance2) in self._borders_info]
 
-    def collides(self, line: Line):
+    def collides(self, line: Line) -> Point | None:
         for line2 in self.borders():
             if intersection := utils.intersects(line2, line):
                 return intersection[0], intersection[1]
@@ -140,7 +141,7 @@ class Vehicle:
         for i, sensor in enumerate(self.sensors):
             sensor.x, sensor.y = self._calculate_position(*self._sensor_info[sensor])
 
-    def _calculate_position(self, angle: float, distance: float):
+    def _calculate_position(self, angle: float, distance: float) -> Point:
         """
         Calculates the position of a point relative to the center of the vehicle, given an angle and distance.
 
@@ -158,7 +159,7 @@ class Vehicle:
         """
         return utils.point_on_circle((self.x, self.y), distance, self.theta + angle)
 
-    def _calculate_position_info(self, x: float, y: float):
+    def _calculate_position_info(self, x: float, y: float) -> tuple[float, float]:
         """
         Calculates some location information of the given point RELATIVE to the center of the vehicle.
         This is intended to be used ONLY ONCE during initialisation.
@@ -172,7 +173,7 @@ class Vehicle:
         distance = utils.distance_2p((self.x, self.y), (x, y))
         return angle, distance
 
-    def _calculate_borders(self):
+    def _calculate_borders(self) -> list[Line]:
         x, y = self.x - self.width / 2, self.y - self.height / 2
         return utils.calculate_borders((x, y), self.width, self.height)
 
@@ -184,7 +185,7 @@ class Vehicle:
 
 @dataclass
 class VehicleData:
-    intersections: list[tuple[float, float, float]]
+    intersections: list[tuple[Point, float]]
     collision: tuple | None = None
     displacement_start: float = 0.0
     displacement_goal: float = 0.0

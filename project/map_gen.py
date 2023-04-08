@@ -6,21 +6,21 @@ from project.types import *
 
 
 class Direction(Enum):
-    LEFT = "L"
     RIGHT = "R"
     DOWN = "D"
+    LEFT = "L"
     UP = "U"
 
     def opposite(self):
         match self:
-            case Direction.LEFT:
-                return Direction.RIGHT
             case Direction.RIGHT:
                 return Direction.LEFT
-            case Direction.UP:
-                return Direction.DOWN
             case Direction.DOWN:
                 return Direction.UP
+            case Direction.LEFT:
+                return Direction.RIGHT
+            case Direction.UP:
+                return Direction.DOWN
 
 
 class MapTile:
@@ -75,16 +75,11 @@ class MapTile:
         self.borders[3] = self._determine_border(self._borders[3], Direction.LEFT)
 
     def _determine_border(self, line: Line, direction: Direction):
+        # Determine if there should be a border at the given direction or not
         border = line
         if direction in [self.from_direction, self.to_direction]:
             border = None
         return border
-
-    def __eq__(self, other):
-        return self.x == other.x and \
-            self.y == other.y and \
-            self.from_direction == other.from_direction and \
-            self.to_direction == other.to_direction
 
     def __repr__(self):
         return f"({self.from_direction.value},{self.to_direction.value})"
@@ -101,16 +96,16 @@ class MapGenerator:
     def set_map_size(self, size: int):
         self._map_size = size
 
-    def get_map_size(self) -> int:
+    def map_size(self) -> int:
         return self._map_size
 
-    def get_map(self) -> list:
+    def map(self) -> list:
         return self._map
 
     def set_tile_size(self, size: float):
         self._tile_size = size
 
-    def get_tiles(self) -> list[MapTile]:
+    def tiles(self) -> list[MapTile]:
         return self._tiles
 
     def regenerate(self) -> list:
@@ -118,12 +113,16 @@ class MapGenerator:
         return self._map
 
     def _generate_map(self):
-        new_arr: list[list[int | MapTile]] = self._new_map()
+        # Generate new map without affecting the existing one
+        new_map: list[list[int | MapTile]] = self._new_map()
+
+        # FYI: I'm aware this is insane spaghetti lol
         x = self._map_size // 2
         y = 1
         to_direction: Direction = Direction.DOWN
         from_direction: Direction = to_direction
-        while self._within_ranges(x, y) and not self._any_ends(new_arr):
+        while self._within_ranges(x, y) and not self._any_ends(new_map):
+            # Determine next direction
             direction_choices = [Direction.LEFT, Direction.RIGHT, Direction.DOWN]
             if from_direction == Direction.LEFT:
                 direction_choices.remove(Direction.RIGHT)
@@ -132,26 +131,31 @@ class MapGenerator:
             to_direction = random.choice(direction_choices)
 
             tile = MapTile(self._tile_size, x, y, from_direction.opposite(), to_direction)
-            new_arr[y][x] = tile
+            new_map[y][x] = tile
             self._tiles.append(tile)
 
+            # This part is to account for when it loops back around immediately
+            # This just makes sure there's a gap in between
             new_x, new_y = self._new_directions(to_direction, x, y)
-            if to_direction != Direction.DOWN and self._within_ranges(new_x, new_y + 1) and new_arr[y - 1][new_x]:
+            if to_direction != Direction.DOWN and self._within_ranges(new_x, new_y + 1) and new_map[y - 1][new_x]:
                 new_y += 1
-                new_arr[y][x] = MapTile(self._tile_size, x, y, Direction.UP, Direction.DOWN)
-                new_arr[new_y][x] = MapTile(self._tile_size, x, new_y, Direction.UP, to_direction)
+                new_map[y][x] = MapTile(self._tile_size, x, y, Direction.UP, Direction.DOWN)
+                new_map[new_y][x] = MapTile(self._tile_size, x, new_y, Direction.UP, to_direction)
                 self._tiles.remove(self._tiles[-1])
-                self._tiles.append(new_arr[y][x])
-                self._tiles.append(new_arr[new_y][x])
+                self._tiles.append(new_map[y][x])
+                self._tiles.append(new_map[new_y][x])
 
             from_direction = to_direction
             x = new_x
             y = new_y
 
+        # Set to_direction of the last tile to the opposite of its from_direction and recalculate its borders
         self._tiles[-1].to_direction = self._tiles[-1].from_direction.opposite()
         for tile in self._tiles:
             tile._calculate_borders()
 
+        # The next two blocks are for making sure borders at the start and end tiles are there and drawn.
+        # This is so the sensors can detect them.
         first = self._tiles[0]
         first.borders[0] = first.top_border()
 
@@ -164,11 +168,12 @@ class MapGenerator:
             case Direction.LEFT:
                 last.borders[3] = last.left_border()
 
-        return new_arr
+        return new_map
 
     def _new_directions(self, new: Direction, x: int, y: int) -> tuple[int, int]:
         new_x = x
         new_y = y
+
         if new == Direction.LEFT:
             new_x -= 1
         elif new == Direction.RIGHT:
@@ -179,15 +184,14 @@ class MapGenerator:
         return new_x, new_y
 
     def _new_map(self):
-        size = self._tile_size
-        first = MapTile(size, self._map_size // 2, 0, Direction.UP, Direction.DOWN)
-        array = [[0 for _ in range(self._map_size)] for __ in range(self._map_size)]
-        array[0][self._map_size // 2] = first
-        self._tiles = []
-        self._tiles.append(first)
-        return array
+        first = MapTile(self._tile_size, self._map_size // 2, 0, Direction.UP, Direction.DOWN)
+        new_map = [[0 for _ in range(self._map_size)] for __ in range(self._map_size)]
+        new_map[0][self._map_size // 2] = first
+        self._tiles = [first]
+        return new_map
 
     def _any_ends(self, array: list) -> bool:
+        # Check if any of the tiles have reached the end
         return any(array[self._map_size - 1]) or \
             any([row[0] for row in array]) or \
             any([row[-1] for row in array])

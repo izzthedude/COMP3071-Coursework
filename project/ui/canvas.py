@@ -25,7 +25,7 @@ class Canvas(QWidget):
         # Draw last tile
         p.save()
         p.setOpacity(0.4)
-        last_tile = self._env.mapgen.get_tiles()[-1]
+        last_tile = self._env.mapgen.tiles()[-1]
         p.fillRect(
             last_tile.x,
             last_tile.y,
@@ -36,7 +36,7 @@ class Canvas(QWidget):
         p.restore()
 
         # Draw tile borders
-        for tile in self._env.mapgen.get_tiles():
+        for tile in self._env.mapgen.tiles():
             self._draw_tile(tile, p)
 
         # Draw finish line for last border
@@ -50,14 +50,20 @@ class Canvas(QWidget):
         p.restore()
 
         # Draw vehicles
-        for vehicle, data in self._env.datas.items():
+        for vehicle, (_, data) in self._env.vehicles.items():
             if vehicle is not self._env.current_best_vehicle:
                 self._draw_vehicle(vehicle, data, "blue", p)
 
         # Always draw the best vehicle on top
         if best := self._env.current_best_vehicle:
-            data = self._env.datas[best]
-            self._draw_vehicle(best, data, "green", p)
+            self._draw_vehicle(best, self._env.vehicle_data(best), "green", p)
+
+        # Draw controls info
+        controls_info = [
+            f"SPACE: Run/stop simulation",
+            f"ENTER: Proceed to next generation"
+        ]
+        self._draw_text_section(0, 0, "Controls", controls_info, p)
 
         # Draw general info
         ticks_left = self._env.ticks_per_gen - self._env.current_ticks
@@ -67,18 +73,11 @@ class Canvas(QWidget):
             f"Running: {self.is_running} | {ticks_left}",
             f"Generation: {self._env.generation} | {self._env.first_successful_generation} | {until_regen} | {until_resize}",
         ]
-        self._draw_text_section(800, 0, "", general_info, p)
-
-        # Draw controls info
-        controls_info = [
-            f"SPACE: Run/stop simulation",
-            f"ENTER: Proceed to next generation"
-        ]
-        self._draw_text_section(0, 0, "Controls", controls_info, p)
+        self._draw_text_section(775, 0, "", general_info, p)
 
     def _draw_tile(self, tile: MapTile, painter: QPainter):
         for border in tile.borders:
-            if border is not None:
+            if border:
                 start, end = border
                 x_start, y_start = start
                 x_end, y_end = end
@@ -105,7 +104,7 @@ class Canvas(QWidget):
         painter.save()
         for i in range(len(vehicle.sensors)):
             # TODO (low): Find out how to update sensor length in real time, instead of on ticks
-            *point, _ = data.intersections[i]
+            point, _ = data.intersections[i]
             if not (data.collision or data.is_finished):  # Only draw sensors of moving vehicles, to reduce visual mess
                 self._draw_sensor_line(vehicle, vehicle.sensors[i], point, painter)
         painter.restore()
@@ -160,9 +159,9 @@ class Canvas(QWidget):
         painter.setOpacity(0.4)
 
         line = QLineF()
-        line.setP1(QPointF(*sensor.line_start()))
+        line.setP1(QPointF(*sensor.start()))
         line.setP2(QPointF(*end))
-        line.setAngle(math.degrees(-vehicle.theta - sensor.sense_angle))
+        line.setAngle(math.degrees(-vehicle.theta - sensor.theta))
         painter.drawLine(line)
         painter.setOpacity(1)
 

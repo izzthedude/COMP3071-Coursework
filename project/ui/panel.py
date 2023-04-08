@@ -98,9 +98,6 @@ class _Section(QWidget):
         self._rows_layout.setContentsMargins(10, 0, 10, 10)
         layout.addLayout(self._rows_layout)
 
-    def set_title(self, title: str):
-        self._title_label.setText(title)
-
     def add_row(self, title: str, action_widget: QWidget):
         row = self._rows_layout.rowCount()
         self._rows_layout.addWidget(QLabel(title), row, 0, alignment=Qt.AlignLeft | Qt.AlignVCenter)

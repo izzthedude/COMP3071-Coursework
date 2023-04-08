@@ -6,19 +6,7 @@ from project.types import *
 def distance_2p(p1: Point, p2: Point) -> float:
     """
     Calculates the distance between two points.
-
     Referenced from: https://www.mathwarehouse.com/algebra/distance_formula/index.php
-    Parameters
-    ----------
-    p1
-        The first x and y point
-    p2
-        The second x and y point
-
-    Returns
-    -------
-    float
-        The distance between the two given points.
     """
     dx = p2[0] - p1[0]
     dy = p2[1] - p1[1]
@@ -28,21 +16,7 @@ def distance_2p(p1: Point, p2: Point) -> float:
 def point_on_circle(origin: Point, radius: float, theta: float) -> Point:
     """
     Calculates a point on the circle's circumference.
-
     Referenced from: https://en.wikipedia.org/wiki/Circle#Equations
-    Parameters
-    ----------
-    origin
-        The origin/center point of the circle
-    radius
-        The radius of the circle
-    theta
-        The angle (in radians) of where the point is located relative to 0.
-
-    Returns
-    -------
-    tuple[float, float]
-        A tuple of the x and y point.
     """
     x = origin[0] + radius * math.cos(theta)
     y = origin[1] + radius * math.sin(theta)
@@ -52,19 +26,7 @@ def point_on_circle(origin: Point, radius: float, theta: float) -> Point:
 def intersects(line1: Line, line2: Line) -> Point | None:
     """
     Calculates the intersection point between two lines.
-
     Referenced from https://gist.github.com/kylemcdonald/6132fc1c29fd3767691442ba4bc84018
-    Parameters
-    ----------
-    line1
-        A tuple containing two points of the first line
-    line2
-        A tuple containing two points of the second line
-
-    Returns
-    -------
-    tuple[float, float]
-        A tuple of the x and y point where the two lines intersect.
     """
     (x1, y1), (x2, y2) = line1
     (x3, y3), (x4, y4) = line2
@@ -87,6 +49,10 @@ def intersects(line1: Line, line2: Line) -> Point | None:
 
 
 def calculate_borders(top_left: Point, width: float, height: float) -> list[Line]:
+    """
+    Calculates the borders lines of a square/rectangle with the given top left point. The returned list of lines
+    is in the order: TOP, RIGHT, BOTTOM, LEFT.
+    """
     x, y = top_left
     borders = [
         ((x, y), (x + width, y)),  # Top
@@ -97,16 +63,27 @@ def calculate_borders(top_left: Point, width: float, height: float) -> list[Line
     return borders
 
 
-def average(values: list[int | float]):
+def average(values: list[int | float]) -> float:
+    """
+    Calculates the average of values in the given list
+    """
     return sum(values) / len(values)
 
 
-def change_cutoff(value: float, change: float, minimum: float, maximum: float):
+def change_cutoff(value: float, change: float, minimum: float, maximum: float) -> float:
+    """
+    Applies the change to the value. If the resulting value is below the minimum or above the maximum, the minimum or
+    maximum value is returned instead.
+    """
     new = value + change
     new = max(minimum, new)
     new = min(new, maximum)
     return new
 
 
-def squash(value: float, domain: tuple[float, float]):
+def squash(value: float, domain: tuple[float, float]) -> float:
+    """
+    'Squashes' the given value into the given domain. The value is assumed to be between 0 and 1. The domain is a tuple
+    of (lower boundary, upper boundary) values.
+    """
     return (value * (domain[1] - domain[0])) + min(domain)
