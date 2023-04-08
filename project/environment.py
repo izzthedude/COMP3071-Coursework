@@ -20,7 +20,7 @@ class Environment:
         self.mutation_chance: float = self.mutation_chance_domain[1]
         self.mutation_rate: float = 0.05
         self.regen_n_runs: int = 10
-        self.resize_n_regens: int = 4
+        self.resize_n_regens: int = 10
 
         self.current_ticks = 0
         self.current_map_run: int = 0
@@ -34,7 +34,7 @@ class Environment:
         self.num_successful_agents: int = 0  # Currently unused but still keeping it just in case
 
         # Map
-        map_size = 7
+        map_size = 3
         self.mapgen = MapGenerator(enums.CANVAS_SIZE // map_size, map_size)
 
         # Initialise vehicles
@@ -118,7 +118,10 @@ class Environment:
                 self.current_mapsize_run += 1
 
             elif self.resize_n_regens > 0:
-                self.on_size_changed(self.get_map_size() + 1)
+                new_size = self.get_map_size() + 1
+                if new_size > 11:
+                    new_size = 3
+                self.on_size_changed(new_size)
                 self.current_map_run = 0
                 self.current_mapsize_run = 0
 

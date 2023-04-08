@@ -81,6 +81,15 @@ class MapTile:
             border = None
         return border
 
+    def __eq__(self, other):
+        if isinstance(other, MapTile):
+            return self.x == other.x and \
+                self.y == other.y and \
+                self.from_direction == other.from_direction and \
+                self.to_direction == other.to_direction
+        else:
+            return False
+
     def __repr__(self):
         return f"({self.from_direction.value},{self.to_direction.value})"
 
@@ -109,7 +118,10 @@ class MapGenerator:
         return self._tiles
 
     def regenerate(self) -> list:
-        self._map = self._generate_map()
+        new = self._generate_map()
+        while new == self._map:
+            new = self._generate_map()
+        self._map = new
         return self._map
 
     def _generate_map(self):
