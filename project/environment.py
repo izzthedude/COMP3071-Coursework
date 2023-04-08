@@ -1,6 +1,5 @@
 import math
 import random
-import time
 
 from project import enums
 from project import utils
@@ -24,7 +23,6 @@ class Environment:
         self.regen_on_success: int = 5
         self.resize_on_success: int = 3
 
-        self._is_first_tick: bool = True
         self.current_ticks = 0
         self.current_map_success: int = 0
         self.current_mapsize_success: int = 0
@@ -55,8 +53,6 @@ class Environment:
         # Iterate through vehicles and do a bunch of calculations
         last_tile = self.mapgen.tiles()[-1]
         for vehicle, (agent, data) in self.vehicles.items():
-            if self._is_first_tick:  # TODO: use ticks instead of actual time
-                data.start_time = time.time()
 
             # Only calculate for vehicles that haven't collided or finished
             if not (data.collision or data.is_finished):
@@ -73,7 +69,7 @@ class Environment:
                     data.is_finished = vehicle.x <= x1 and y1 <= vehicle.y <= y2
 
                 if data.is_finished:
-                    data.time_taken = time.time() - data.start_time
+                    data.end_tick = self.current_ticks - data.start_tick
 
                     self.num_successful_agents += 1
                     if not self.first_successful_generation:
@@ -89,9 +85,6 @@ class Environment:
                                                 for vehicle, (_, data) in self.vehicles.items()]
         fitness.sort(key=lambda pair: pair[1], reverse=True)
         self.current_best_vehicle = fitness[0][0]
-
-        if self._is_first_tick:
-            self._is_first_tick = False
 
         # Check if current run is done
         ticks_finished = self.current_ticks >= self.ticks_per_gen
@@ -159,7 +152,6 @@ class Environment:
         self.generation += 1
 
     def on_reset(self):
-        self._is_first_tick = True
         self.current_ticks = 0
         self.num_successful_agents = 0
 

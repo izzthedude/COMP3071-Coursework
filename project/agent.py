@@ -94,13 +94,15 @@ class GeneticAlgorithm:
         ratio = math.sqrt(data.displacement_start) / math.sqrt(data.displacement_goal)
         out = ratio
 
-        # If the vehicle has reached its goal, the time_taken to reach there also factors in
+        # If the vehicle has reached its goal, the number of ticks it took to reach there also factors in
         if data.is_finished:
+            ticks_taken = data.end_tick - data.start_tick
             # Values here are arbitrary. Adjust them to change how much the time should influence the fitness
             # You can visualise this function over at https://www.desmos.com/calculator
-            multiplier = 2  # HIGHER = more influence
+            multiplier = 15  # HIGHER = more influence
             power = 0.5  # LOWER = more influence
-            out = exp_decay(data.time_taken, multiplier, power) + ratio
+            offset = -1  # HIGHER = more influence
+            out = exp_decay(ticks_taken * 0.10, multiplier, power, offset) + ratio
 
         return out
 
@@ -174,7 +176,6 @@ def relu(inputs: np.ndarray) -> np.ndarray:
     return np.maximum(0, inputs)
 
 
-def exp_decay(value: float, multiplier: float, power: float):
+def exp_decay(value: float, multiplier: float, power: float, offset: float):
     # Exponentially increase output as the input approaches 0
-    # Referenced from https://math.stackexchange.com/questions/2479176/exponential-decay-as-input-goes-to-0
-    return math.e ** (multiplier / (value ** power))
+    return (multiplier / (value ** power)) + offset
