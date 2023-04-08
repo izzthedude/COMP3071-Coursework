@@ -27,6 +27,7 @@ class Environment:
         self.mutation_chance: float = self.mutation_chance_domain[1]
         self.mutation_rate: float = self.mutation_rate_domain[0]
         self.carryover_percentage = 0.20
+        self.current_best_vehicle: Vehicle = None
         self._is_first_tick: bool = True
 
         # Generation info
@@ -83,6 +84,11 @@ class Environment:
                 dtheta, dspeed = self.agents[vehicle].predict(inputs)
                 vehicle.theta += dtheta
                 vehicle.change_speed(dspeed)
+
+        # Get current best fit vehicle
+        fitness: list[tuple[Vehicle, float]] = [(vehicle, GA.fitness(data)) for vehicle, data in self.datas.items()]
+        fitness.sort(key=lambda pair: pair[1], reverse=True)
+        self.current_best_vehicle = fitness[0][0]
 
         if self._is_first_tick:
             self._is_first_tick = False

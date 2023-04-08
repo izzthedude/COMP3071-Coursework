@@ -65,15 +65,14 @@ class Vehicle:
         sensor_x = self.x + self.width / 2
         end_y = self.y + self.height / 2
         y_offset = end_y - self.height
-        inset = 2
         front_sense_angle = math.radians(30)
         side_sense_angle = math.radians(60)
         self.sensors: list[Sensor] = [
-            Sensor(sensor_x - inset, (end_y - y_offset) * 0.25 + y_offset, sensor_size, -front_sense_angle),  # Front left
-            Sensor(sensor_x - inset, (end_y - y_offset) * 0.50 + y_offset, sensor_size, 0),  # Front center
-            Sensor(sensor_x - inset, (end_y - y_offset) * 0.75 + y_offset, sensor_size, front_sense_angle),  # Front right
-            Sensor(self.x, self.y + self.height / 2 - inset, sensor_size, side_sense_angle),  # Right
-            Sensor(self.x, self.y - self.height / 2 + inset, sensor_size, -side_sense_angle),  # Left
+            Sensor(sensor_x, (end_y - y_offset) * 0.25 + y_offset, sensor_size, -front_sense_angle),  # Front left
+            Sensor(sensor_x, (end_y - y_offset) * 0.50 + y_offset, sensor_size, 0),  # Front center
+            Sensor(sensor_x, (end_y - y_offset) * 0.75 + y_offset, sensor_size, front_sense_angle),  # Front right
+            Sensor(self.x, self.y + self.height / 2, sensor_size, side_sense_angle),  # Right
+            Sensor(self.x, self.y - self.height / 2, sensor_size, -side_sense_angle),  # Left
         ]
 
         # Recalibrate positions

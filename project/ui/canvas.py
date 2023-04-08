@@ -7,7 +7,7 @@ from PySide6.QtWidgets import *
 from project import enums
 from project.environment import Environment
 from project.map_gen import MapTile
-from project.models import Vehicle, Wheel, Sensor
+from project.models import Vehicle, Wheel, Sensor, VehicleData
 from project.types import *
 
 
@@ -51,54 +51,13 @@ class Canvas(QWidget):
 
         # Draw vehicles
         for vehicle, data in self._env.datas.items():
-            # Draw vehicle's main body
-            p.save()
-            p.translate(vehicle.x, vehicle.y)
-            p.rotate(math.degrees(vehicle.theta))
-            p.fillRect(
-                0 - vehicle.width / 2,
-                0 - vehicle.height / 2,
-                vehicle.width,
-                vehicle.height,
-                "blue"
-            )
+            if vehicle is not self._env.current_best_vehicle:
+                self._draw_vehicle(vehicle, data, "blue", p)
 
-            # Draw border around vehicle's main body
-            # Draw it red if collided
-            if data.collision:
-                p.setPen("red")
-            if data.is_finished:
-                p.setPen("lime")
-
-            p.drawRect(
-                0 - vehicle.width / 2,
-                0 - vehicle.height / 2,
-                vehicle.width,
-                vehicle.height,
-            )
-            p.resetTransform()
-            p.restore()
-
-            # Draw wheels
-            for wheel in vehicle.wheels:
-                self._draw_wheel(vehicle, wheel, p)
-                p.resetTransform()
-
-            # Draw sensor lines
-            p.save()
-            for i in range(len(vehicle.sensors)):
-                # TODO (low): Find out how to update sensor length in real time, instead of on ticks
-                *point, _ = data.intersections[i]
-                if not data.collision:  # Only draw the ones that haven't collided, to reduce visual mess
-                    self._draw_sensor_line(vehicle, vehicle.sensors[i], point, p)
-            p.restore()
-
-            # Draw sensors
-            p.save()
-            for sensor in vehicle.sensors:
-                self._draw_sensor(sensor, p)
-                p.resetTransform()
-            p.restore()
+        # Always draw the best vehicle on top
+        if best := self._env.current_best_vehicle:
+            data = self._env.datas[best]
+            self._draw_vehicle(best, data, "green", p)
 
         # Draw general info
         ticks_left = self._env.ticks_per_gen - self._env.current_ticks
@@ -129,6 +88,60 @@ class Canvas(QWidget):
                     x_end,
                     y_end
                 )
+
+    def _draw_vehicle(self, vehicle: Vehicle, data: VehicleData, body_colour: str, painter: QPainter):
+        # Draw vehicle's main body
+        painter.save()
+        self._draw_vehicle_body(vehicle, data, body_colour, painter)
+        painter.resetTransform()
+        painter.restore()
+
+        # Draw wheels
+        for wheel in vehicle.wheels:
+            self._draw_wheel(vehicle, wheel, painter)
+            painter.resetTransform()
+
+        # Draw sensor lines
+        painter.save()
+        for i in range(len(vehicle.sensors)):
+            # TODO (low): Find out how to update sensor length in real time, instead of on ticks
+            *point, _ = data.intersections[i]
+            if not (data.collision or data.is_finished):  # Only draw sensors of moving vehicles, to reduce visual mess
+                self._draw_sensor_line(vehicle, vehicle.sensors[i], point, painter)
+        painter.restore()
+
+        # Draw sensors
+        painter.save()
+        for sensor in vehicle.sensors:
+            self._draw_sensor(sensor, painter)
+            painter.resetTransform()
+        painter.restore()
+
+    def _draw_vehicle_body(self, vehicle: Vehicle, data: VehicleData, color: str, painter: QPainter):
+        # Draw vehicle's main body
+        painter.translate(vehicle.x, vehicle.y)
+        painter.rotate(math.degrees(vehicle.theta))
+        painter.fillRect(
+            0 - vehicle.width / 2,
+            0 - vehicle.height / 2,
+            vehicle.width,
+            vehicle.height,
+            color
+        )
+
+        # Draw border around vehicle's main body
+        # Draw it red if collided
+        if data.collision:
+            painter.setPen("red")
+        if data.is_finished:
+            painter.setPen("lime")
+
+        painter.drawRect(
+            0 - vehicle.width / 2,
+            0 - vehicle.height / 2,
+            vehicle.width,
+            vehicle.height,
+        )
 
     def _draw_wheel(self, vehicle: Vehicle, wheel: Wheel, painter: QPainter):
         painter.translate(wheel.x, wheel.y)
