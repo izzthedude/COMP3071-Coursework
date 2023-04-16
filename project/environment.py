@@ -69,7 +69,7 @@ class Environment:
                     data.is_finished = vehicle.x <= x1 and y1 <= vehicle.y <= y2
 
                 if data.is_finished:
-                    data.end_tick = self.current_ticks - data.start_tick
+                    data.ticks_taken = self.current_ticks
 
                     self.num_successful_agents += 1
                     if not self.first_successful_generation:
@@ -81,7 +81,8 @@ class Environment:
                 vehicle.change_speed(dspeed)
 
         # Get current best fit vehicle
-        fitness: list[tuple[Vehicle, float]] = [(vehicle, GA.fitness(data))
+        all_ticks = [data.ticks_taken for data in self.vehicle_datas()]
+        fitness: list[tuple[Vehicle, float]] = [(vehicle, GA.fitness(data, all_ticks))
                                                 for vehicle, (_, data) in self.vehicles.items()]
         fitness.sort(key=lambda pair: pair[1], reverse=True)
         self.current_best_vehicle = fitness[0][0]
@@ -98,8 +99,11 @@ class Environment:
     def end_current_run(self, reset: bool = False, proceed_nextgen: bool = False):
         # If success
         if any(data.is_finished for data in self.vehicle_datas()):
-            if self.regen_n_runs != 0:
-                self.regen_n_runs = max(1, int(self.regen_n_runs * 0.8))
+            # Decrease the N for Regenerate on N Runs on successful runs
+            # Commented out for now since it can get confusing but still leaving it here
+            # if self.regen_n_runs != 0:
+            #     self.regen_n_runs = max(1, int(self.regen_n_runs * 0.8))
+            pass
 
         else:
             if self.regen_n_runs != 0:
@@ -142,18 +146,21 @@ class Environment:
             self.carryover_percentage,
             self.mutation_chance,
             self.mutation_rate)
-        fitted_datas = sorted(datas, key=lambda data: GA.fitness(data), reverse=True)
+
+        all_ticks = [data.ticks_taken for data in datas]
+        fitted_datas = sorted(datas, key=lambda data: GA.fitness(data, all_ticks), reverse=True)
 
         # Apply next generation to agents
         for agent, genome in zip(self.vehicle_agents(), next_generation):
             agent.weights = agent.from_genome(genome)
 
-        # Adjust chance of mutation of dynamic mutation is True
+        # Adjust chance of mutation if dynamic mutation is True
         if self.dynamic_mutation:
             num = int(len(fitted_datas) * self.carryover_percentage)
             top = fitted_datas[:num]
-            avg_fitness = utils.average([GA.fitness(data) for data in top])
-            self.mutation_chance = utils.squash(math.tanh(1 / avg_fitness), self.mutation_chance_domain)
+            avg_fitness = utils.average([GA.fitness(data, all_ticks) for data in top])
+            adjusted = math.tanh(1 / avg_fitness) if avg_fitness else self.mutation_chance_domain[1]
+            self.mutation_chance = utils.squash(adjusted, self.mutation_chance_domain)
 
         self.generation += 1
 

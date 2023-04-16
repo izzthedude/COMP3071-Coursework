@@ -3,7 +3,7 @@ import random
 
 import numpy as np
 
-from project import enums
+from project import enums, utils
 from project.models import VehicleData
 from project.types import *
 
@@ -89,20 +89,22 @@ class NavigatorAgent:
 
 class GeneticAlgorithm:
     @staticmethod
-    def fitness(data: VehicleData) -> float:
+    def fitness(data: VehicleData, all_ticks_taken: list[float]) -> float:
         # The fitness will be the ratio between displacement from start and displacement from goal
-        ratio = math.sqrt(data.displacement_start) / math.sqrt(data.displacement_goal)
+        offset = 15
+        denom = math.sqrt(data.displacement_goal + offset)
+        ratio = math.sqrt(data.displacement_start) / denom if denom else 0
         out = ratio
 
         # If the vehicle has reached its goal, the number of ticks it took to reach there also factors in
         if data.is_finished:
-            ticks_taken = data.end_tick - data.start_tick
-            # Values here are arbitrary. Adjust them to change how much the time should influence the fitness
+            normalised = utils.normalise(data.ticks_taken, [tick for tick in all_ticks_taken if tick])
+            # Values here are arbitrary. Adjust them to change how much the ticks taken should influence the fitness
             # You can visualise this function over at https://www.desmos.com/calculator
-            multiplier = 15  # HIGHER = more influence
-            power = 0.5  # LOWER = more influence
-            offset = -1  # HIGHER = more influence
-            out = exp_decay(ticks_taken * 0.10, multiplier, power, offset) + ratio
+            multiplier = 2  # HIGHER = more influence
+            power = 0.2  # HIGHER = more influence
+            bonus = exp_decay(normalised, multiplier, power)
+            out += bonus
 
         return out
 
@@ -146,7 +148,7 @@ class GeneticAlgorithm:
     def next_generation(population: Population, datas: tuple[VehicleData], carry_over: float,
                         mutation_chance: float, mutation_rate: float) -> Population:
         # Sort population by fitness
-        fitnesses = [GeneticAlgorithm.fitness(data) for data in datas]
+        fitnesses = [GeneticAlgorithm.fitness(data, [_data.ticks_taken for _data in datas]) for data in datas]
         sorted_population = sorted(
             enumerate(population),
             key=lambda enum: fitnesses[enum[0]],
@@ -176,6 +178,8 @@ def relu(inputs: np.ndarray) -> np.ndarray:
     return np.maximum(0, inputs)
 
 
-def exp_decay(value: float, multiplier: float, power: float, offset: float):
+def exp_decay(value: float, multiplier: float, power: float):
     # Exponentially increase output as the input approaches 0
-    return (multiplier / (value ** power)) + offset
+    if value == 0:
+        value = 0.01
+    return multiplier / (value ** power)

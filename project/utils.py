@@ -87,3 +87,22 @@ def squash(value: float, domain: tuple[float, float]) -> float:
     of (lower boundary, upper boundary) values.
     """
     return (value * (domain[1] - domain[0])) + min(domain)
+
+
+def normalise(value: float, possible: list[float]):
+    """
+    Normalises the given value based on a list of possible values. If there is only value in the given list, it will
+    be converted to a 1.
+    """
+    minimum = min(possible)
+    maximum = max(possible)
+    denom = maximum - minimum
+    return (value - minimum) / denom if denom else 1.0
+
+
+def normalise_arr(arr: list[float]):
+    """
+    Normalises a given list of values to values between 0 and 1, where 0 is the smallest value of the given list and 1
+    is the largest.
+    """
+    return [normalise(value, arr) for value in arr]

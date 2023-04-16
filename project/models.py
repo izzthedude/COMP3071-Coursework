@@ -190,13 +190,11 @@ class VehicleData:
     displacement_start: float = 0.0
     displacement_goal: float = 0.0
     is_finished: bool = False
-    start_tick: int = 0
-    end_tick: int = 0
+    ticks_taken: int = 0
 
     def reset(self):
         self.collision = None
         self.displacement_start = 0.0
         self.displacement_goal = 0.0
         self.is_finished = False
-        self.start_tick = 0
-        self.end_tick = 0
+        self.ticks_taken = 0
