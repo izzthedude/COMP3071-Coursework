@@ -13,14 +13,16 @@ class Environment:
         self.tick_interval = 20
         self.ticks_per_gen = 750
         self.auto_reset: bool = True
+        self.regen_n_runs_enabled: bool = True
+        self.regen_n_runs: int = 4
+        self.resize_n_regens_enabled: bool = True
+        self.resize_n_regens: int = 6
         self.learning_mode: bool = True
         self.dynamic_mutation: bool = True
         self.mutation_chance_domain = (0.01, 0.40)  # Domains here are mainly for dynamic mutation use. Not UI.
         self.mutation_rate_domain = (0.01, 0.20)
         self.mutation_chance: float = self.mutation_chance_domain[1]
         self.mutation_rate: float = 0.05
-        self.regen_n_runs: int = 10
-        self.resize_n_regens: int = 10
 
         self.current_ticks = 0
         self.current_map_run: int = 0
@@ -110,26 +112,32 @@ class Environment:
                 self.regen_n_runs = self.initial_regen_runs
                 self.current_mapsize_run = 0
 
-        # Update current map run
-        if self.current_map_run + 1 < self.regen_n_runs:
-            self.current_map_run += 1
+        if self.regen_n_runs_enabled:
+            # Update current map run
+            if self.current_map_run + 1 < self.regen_n_runs:
+                self.current_map_run += 1
 
-        elif self.regen_n_runs > 0:
-            self.current_map_run = 0
-
-            # Check for current map SIZE success
-            if self.current_mapsize_run + 1 < self.resize_n_regens:
-                self.current_mapsize_run += 1
-
-            elif self.resize_n_regens > 0:
-                new_size = self.get_map_size() + 1
-                if new_size > 11:
-                    new_size = 3
-                self.on_size_changed(new_size)
+            # Regenerate current map if current_map_run >= regen_n_runs
+            elif self.regen_n_runs > 0:
                 self.current_map_run = 0
-                self.current_mapsize_run = 0
 
-            self.mapgen.regenerate()
+                if self.resize_n_regens_enabled:
+                    # Update current map size run
+                    if self.current_mapsize_run + 1 < self.resize_n_regens:
+                        self.current_mapsize_run += 1
+
+                    # Resize map if current_mapsize_run >= resize_n_regens
+                    elif self.resize_n_regens > 0:
+                        # Increment map size by one
+                        new_size = self.get_map_size() + 1
+                        if new_size > 11:
+                            new_size = 3
+
+                        self.on_size_changed(new_size)
+                        self.current_map_run = 0
+                        self.current_mapsize_run = 0
+
+                self.mapgen.regenerate()
 
         # Auto reset
         if self.auto_reset or reset:

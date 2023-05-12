@@ -99,10 +99,12 @@ class MainWindow(QMainWindow):
     def _on_regen_n_runs_checked(self, check: int):
         check = bool(check)
         self._panel.regen_n_runs_spinbox.setEnabled(check)
+        self._env.regen_n_runs_enabled = check
 
     def _on_resize_n_regens_checked(self, check: int):
         check = bool(check)
         self._panel.resize_n_regens_spinbox.setEnabled(check)
+        self._env.resize_n_regens_enabled = check
 
     def _on_regenerate(self):
         self._env.on_regenerate()
@@ -162,10 +164,12 @@ class MainWindow(QMainWindow):
 
         # Map
         self._panel.map_size_spinbox.setRange(3, 11)
+        self._panel.regen_n_runs_checkbox.setChecked(self._env.regen_n_runs_enabled)
         self._panel.regen_n_runs_spinbox.setRange(0, 50)
         self._panel.regen_n_runs_spinbox.setSingleStep(2)
         self._panel.regen_n_runs_spinbox.setValue(self._env.regen_n_runs)
         self._panel.regen_n_runs_spinbox.setEnabled(self._panel.regen_n_runs_checkbox.isChecked())
+        self._panel.resize_n_regens_checkbox.setChecked(self._env.resize_n_regens_enabled)
         self._panel.resize_n_regens_spinbox.setRange(0, 50)
         self._panel.resize_n_regens_spinbox.setSingleStep(2)
         self._panel.resize_n_regens_spinbox.setValue(self._env.resize_n_regens)
