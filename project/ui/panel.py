@@ -79,8 +79,8 @@ class Panel(QScrollArea):
         self.mutation_chance_spinbox = QDoubleSpinBox()
         self.mutation_rate_spinbox = QDoubleSpinBox()
         self.proceed_nextgen_btn = QPushButton("Next Generation")
-        self.save_best_btn = QPushButton("Save Best Model")
-        self.load_model_btn = QPushButton("Load Model")
+        self.save_best_agent_btn = QPushButton("Save Best Agent")
+        self.load_agent_btn = QPushButton("Load Agent")
 
         self._agent_section.add_row("Dynamic Mutation", self.dynamic_mutation_checkbox,
                                     "Reduce the chance of mutation as the best fit agent gets closer to the goal."
@@ -92,8 +92,8 @@ class Panel(QScrollArea):
         self._agent_section.add_row("", self.proceed_nextgen_btn,
                                     "Proceeds to the next generation by creating children from some of the best fit "
                                     "agents. Some of the best fit agents are preserved for the next generation.")
-        self._agent_section.add_row("", self.save_best_btn)
-        self._agent_section.add_row("", self.load_model_btn)
+        self._agent_section.add_row("", self.save_best_agent_btn)
+        self._agent_section.add_row("", self.load_agent_btn)
 
         self.addWidget(self._general_section)
         self.addWidget(self._map_section)

@@ -1,3 +1,5 @@
+import os
+
 from PySide6.QtCore import *
 from PySide6.QtGui import *
 from PySide6.QtWidgets import *
@@ -6,6 +8,8 @@ from project import enums
 from project.environment import Environment
 from project.ui.canvas import Canvas
 from project.ui.panel import Panel
+
+AGENTS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "agents")
 
 
 class MainWindow(QMainWindow):
@@ -170,11 +174,15 @@ class MainWindow(QMainWindow):
         self._env.end_current_run(True, True)
 
     def _on_save_best_model(self):
-        self._env.on_save_best_model()
+        self._env.on_save_best_agent(AGENTS_DIR)
 
     def _on_load_model(self):
-        # self._environment.on_load_model()
-        pass
+        dialog = QFileDialog(self, "Select Python pickle file", AGENTS_DIR, "Python Pickles (*.pickle)")
+        dialog.setAcceptMode(QFileDialog.AcceptMode.AcceptOpen)
+
+        if dialog.exec():
+            file_path = dialog.selectedFiles()[0]
+            self._env.on_load_agent(file_path)
 
     def _setup_panel_values(self):
         # General
@@ -248,6 +256,8 @@ class MainWindow(QMainWindow):
         self._panel.mutation_chance_spinbox.valueChanged.connect(self._on_mutation_chance_changed)
         self._panel.mutation_rate_spinbox.valueChanged.connect(self._on_mutation_rate_changed)
         self._panel.proceed_nextgen_btn.clicked.connect(self._on_proceed_nextgen)
+        self._panel.save_best_agent_btn.clicked.connect(self._on_save_best_model)
+        self._panel.load_agent_btn.clicked.connect(self._on_load_model)
 
     def _setup_layout(self):
         self._content_box_layout = QHBoxLayout()

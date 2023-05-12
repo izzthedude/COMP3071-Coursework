@@ -1,4 +1,8 @@
 import math
+import os
+import pickle
+import random
+from datetime import datetime
 
 from project import enums
 from project import utils
@@ -33,7 +37,7 @@ class Environment:
 
         self.generation: int = 0
         self.first_successful_generation: int | None = None
-        self.num_successful_agents: int = 0  # Currently unused but still keeping it just in case
+        self.num_successful_agents: int = 0
 
         # Map
         map_size = 3
@@ -99,44 +103,46 @@ class Environment:
         return done
 
     def end_current_run(self, reset: bool = False, proceed_nextgen: bool = False):
-        # If success
-        if any(data.is_finished for data in self.vehicle_datas()):
-            pass
-
-        else:
-            self.current_map_run = 0
-            self.current_mapsize_run = 0
-
         if self.regen_n_runs_enabled:
-            # Update current map run
+            # Update current map run if haven't reached limit
             if self.current_map_run + 1 < self.regen_n_runs:
                 self.current_map_run += 1
 
             # Regenerate current map if current_map_run >= regen_n_runs
             else:
-                self.current_map_run = 0
                 if self.resize_n_regens_enabled:
-                    # Update current map size run
+                    # Update current map size run if haven't reached limit
                     if self.current_mapsize_run + 1 < self.resize_n_regens:
                         self.current_mapsize_run += 1
 
-                    # Resize map if current_mapsize_run >= resize_n_regens
+                    # Resize map once reached limit
                     else:
-                        # Increment map size by one
-                        new_size = self.get_map_size() + 1
-                        if new_size > 11:
-                            self.auto_reset = False
-                            new_size = 3
+                        if self.learning_mode:
+                            # Increment map size by one
+                            new_size = self.get_map_size() + 1
+                            if new_size > 11:
+                                new_size = 3
+
+                        else:
+                            new_size = random.randint(3, 11)
 
                         self.on_size_changed(new_size)
                         self.current_mapsize_run = 0
 
+                self.current_map_run = 0
+                self.mapgen.regenerate()
+
+        # If success
+        if any(data.is_finished for data in self.vehicle_datas()):
+            pass
+        else:
+            self.current_map_run = 0
+            self.current_mapsize_run = 0
 
         # Auto reset
         if self.auto_reset or reset:
             if self.learning_mode or proceed_nextgen:
                 self.on_generation_end()
-            self.on_regenerate()
             self.on_reset()
 
     def on_generation_end(self):
@@ -188,6 +194,25 @@ class Environment:
         self.mapgen.set_map_size(size)
         self.mapgen.set_tile_size(enums.CANVAS_SIZE / size)
 
+    def on_save_best_agent(self, directory: str):
+        if not os.path.exists(directory):
+            os.makedirs(directory, exist_ok=True)
+
+        file_name = datetime.now().strftime("agent_%Y%m%d_%H%M%S.pickle")
+        file_path = os.path.join(directory, file_name)
+        with open(file_path, "wb") as file:
+            agent = self.vehicle_agent(self.current_best_vehicle)
+            pickle.dump(agent, file)
+
+    def on_load_agent(self, path: str):
+        with open(path, "rb") as file:
+            new_agent = pickle.load(file)
+
+            # Replace first vehicle's agent with the new loaded agent
+            vehicle = self.get_vehicles()[0]
+            data = self.vehicle_data(vehicle)
+            self.vehicles[vehicle] = (new_agent, data)
+
     def set_learning_mode(self, enabled: bool):
         self.auto_reset = enabled
         self.learning_mode = enabled
@@ -214,12 +239,6 @@ class Environment:
 
     def vehicle_datas(self):
         return tuple(data for _, data in self.vehicles.values())
-
-    def on_save_best_model(self):
-        pass
-
-    def on_load_model(self, path: str):
-        pass
 
     def _calculate_vehicle_start(self):
         first_tile = self.mapgen.tiles()[0]
@@ -262,10 +281,3 @@ class Environment:
         data.intersections, data.collision = self._find_sensor_intersections(vehicle)
         data.displacement_start = utils.distance_2p(self._calculate_vehicle_start(), vehicle.pos())
         data.displacement_goal = utils.distance_2p(self.mapgen.tiles()[-1].center(), vehicle.pos())
-
-    def _change_mutation_rate(self, change: float):
-        self.mutation_rate = utils.change_cutoff(
-            self.mutation_rate,
-            change,
-            *self.mutation_rate_domain
-        )
