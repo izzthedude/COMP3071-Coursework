@@ -1,3 +1,6 @@
+import os
+
+from PySide6.QtGui import *
 from PySide6.QtWidgets import *
 
 from project.environment import Environment
@@ -10,6 +13,7 @@ class App(QApplication):
         self.setApplicationName("Navigator")
         self.setApplicationDisplayName("Navigator")
         self.setApplicationVersion("0.1.0")
+        self.setWindowIcon(QPixmap(os.path.join(os.path.dirname(__file__), "icon.svg")))
 
         self._environment = Environment()
         self._main_window = MainWindow(self._environment)
