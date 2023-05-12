@@ -1,7 +1,6 @@
 import math
 import os
 import pickle
-import random
 from datetime import datetime
 
 from project import enums
@@ -117,14 +116,12 @@ class Environment:
 
                     # Resize map once reached limit
                     else:
-                        if self.learning_mode:
-                            # Increment map size by one
-                            new_size = self.get_map_size() + 1
-                            if new_size > 11:
-                                new_size = 3
-
-                        else:
-                            new_size = random.randint(3, 11)
+                        # Increment map size by one
+                        new_size = self.get_map_size() + 1
+                        if new_size > 11:
+                            # TODO (low): Somehow stop the simulation once it's finished its learning process
+                            self.learning_mode = False
+                            new_size = 3
 
                         self.on_size_changed(new_size)
                         self.current_mapsize_run = 0
@@ -220,8 +217,8 @@ class Environment:
         self.regen_n_runs_enabled = enabled
         self.resize_n_regens_enabled = enabled
         self.dynamic_mutation = enabled
-        self.regen_n_runs = 2
-        self.resize_n_regens = 10
+        self.regen_n_runs = 3
+        self.resize_n_regens = 12
 
     def get_map_size(self):
         return self.mapgen.map_size()

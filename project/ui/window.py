@@ -56,7 +56,6 @@ class MainWindow(QMainWindow):
         self._block_panel_signals(QSpinBox, True)
 
         self._panel.run_simulation_checkbox.setChecked(self._is_running)
-        self._panel.learning_mode_checkbox.setChecked(self._env.learning_mode)
         self._panel.auto_reset_checkbox.setChecked(self._env.auto_reset)
         self._panel.map_size_spinbox.setValue(self._env.get_map_size())
         self._panel.regen_n_runs_checkbox.setChecked(self._env.regen_n_runs_enabled)
@@ -71,6 +70,9 @@ class MainWindow(QMainWindow):
 
         self._block_panel_signals(QCheckBox, False)
         self._block_panel_signals(QSpinBox, False)
+
+        self._panel.learning_mode_checkbox.setChecked(self._env.learning_mode)
+        
         self._canvas.update()
 
     def _update_runner(self, condition: bool):
