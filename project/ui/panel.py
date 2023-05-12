@@ -16,11 +16,19 @@ class Panel(QScrollArea):
         self.run_simulation_checkbox = QCheckBox()
         self.tick_interval_spinbox = QSpinBox()
         self.ticks_per_gen_spinbox = QSpinBox()
+        self.learning_mode_checkbox = QCheckBox()
         self.auto_reset_checkbox = QCheckBox()
 
         self._general_section.add_row("Run Simulation", self.run_simulation_checkbox)
         self._general_section.add_row("Tick Interval (ms)", self.tick_interval_spinbox)
         self._general_section.add_row("Ticks Per Generation", self.ticks_per_gen_spinbox)
+        self._general_section.add_row("Learning Mode", self.learning_mode_checkbox,
+                                      "When enabled, the environment will automatically adjust itself according to the "
+                                      "success of the agents. In any case, the agents will proceed to the next "
+                                      "generation after each run and 'learn' from the previous generation. Some "
+                                      "parameters will be locked while Learning Mode is enabled. "
+                                      "Otherwise, the environment is in 'Observation' mode, where you can observe the "
+                                      "current generation of agents tackle the environments.")
         self._general_section.add_row("Auto Reset", self.auto_reset_checkbox,
                                       "Automatically reset the environment or proceed to the next generation.")
 
@@ -67,7 +75,6 @@ class Panel(QScrollArea):
 
         # Agent Settings
         self._agent_section = _Section("Agent")
-        self.learning_mode_checkbox = QCheckBox()
         self.dynamic_mutation_checkbox = QCheckBox()
         self.mutation_chance_spinbox = QDoubleSpinBox()
         self.mutation_rate_spinbox = QDoubleSpinBox()
@@ -75,10 +82,6 @@ class Panel(QScrollArea):
         self.save_best_btn = QPushButton("Save Best Model")
         self.load_model_btn = QPushButton("Load Model")
 
-        self._agent_section.add_row("Learning Mode", self.learning_mode_checkbox,
-                                    "When enabled, the environment will proceed to the next generation. Otherwise, "
-                                    "the environment will be reset (but not agents' NNs) and the current generation"
-                                    " is preserved.")
         self._agent_section.add_row("Dynamic Mutation", self.dynamic_mutation_checkbox,
                                     "Reduce the chance of mutation as the best fit agent gets closer to the goal."
                                     " Max chance is 40%, while min is 1%.")

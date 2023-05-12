@@ -194,6 +194,15 @@ class Environment:
         self.mapgen.set_map_size(size)
         self.mapgen.set_tile_size(enums.CANVAS_SIZE / size)
 
+    def set_learning_mode(self, enabled: bool):
+        self.auto_reset = enabled
+        self.learning_mode = enabled
+        self.regen_n_runs_enabled = enabled
+        self.resize_n_regens_enabled = enabled
+        self.dynamic_mutation = enabled
+        self.regen_n_runs = 2
+        self.resize_n_regens = 10
+
     def get_map_size(self):
         return self.mapgen.map_size()
 

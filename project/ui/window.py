@@ -35,6 +35,8 @@ class MainWindow(QMainWindow):
         self.addWidget(self._canvas)
         self.installEventFilter(self)
 
+        self._panel.learning_mode_checkbox.setChecked(self._env.learning_mode)
+
     def _tick(self):
         if not self._env.current_ticks >= self._env.ticks_per_gen:
             self._env.tick()
@@ -46,15 +48,25 @@ class MainWindow(QMainWindow):
         self._env_runner.start(self._env.tick_interval)
 
     def _update_ui(self):
+        self._block_panel_signals(QCheckBox, True)
+        self._block_panel_signals(QSpinBox, True)
+
         self._panel.run_simulation_checkbox.setChecked(self._is_running)
+        self._panel.learning_mode_checkbox.setChecked(self._env.learning_mode)
+        self._panel.auto_reset_checkbox.setChecked(self._env.auto_reset)
         self._panel.map_size_spinbox.setValue(self._env.get_map_size())
+        self._panel.regen_n_runs_checkbox.setChecked(self._env.regen_n_runs_enabled)
+        self._panel.regen_n_runs_spinbox.setValue(self._env.regen_n_runs)
+        self._panel.resize_n_regens_checkbox.setChecked(self._env.resize_n_regens_enabled)
+        self._panel.resize_n_regens_spinbox.setValue(self._env.resize_n_regens)
+        self._panel.dynamic_mutation_checkbox.setChecked(self._env.dynamic_mutation)
+        self._panel.mutation_chance_spinbox.setDisabled(self._env.dynamic_mutation)
         self._panel.mutation_chance_spinbox.setValue(self._env.mutation_chance)
         self._panel.mutation_rate_spinbox.setValue(self._env.mutation_rate)
-        self._panel.mutation_chance_spinbox.setDisabled(self._env.dynamic_mutation)
-        self._panel.regen_n_runs_spinbox.blockSignals(True)
-        self._panel.regen_n_runs_spinbox.setValue(self._env.regen_n_runs)
-        self._panel.regen_n_runs_spinbox.blockSignals(False)
         self._canvas.is_running = self._is_running
+
+        self._block_panel_signals(QCheckBox, False)
+        self._block_panel_signals(QSpinBox, False)
         self._canvas.update()
 
     def _update_runner(self, condition: bool):
@@ -90,6 +102,19 @@ class MainWindow(QMainWindow):
     def _on_ticks_until_nextgen_changed(self, value: int):
         self._env.ticks_per_gen = value
 
+    def _on_learning_mode_changed(self, check: int):
+        check = bool(check)
+        if check:
+            self._env.set_learning_mode(check)
+
+        self._env.learning_mode = check
+        self._panel.auto_reset_checkbox.setDisabled(check)
+        self._panel.regen_n_runs_checkbox.setDisabled(check)
+        self._panel.regen_n_runs_spinbox.setDisabled(check)
+        self._panel.resize_n_regens_checkbox.setDisabled(check)
+        self._panel.resize_n_regens_spinbox.setDisabled(check)
+        self._panel.dynamic_mutation_checkbox.setDisabled(check)
+
     def _on_auto_reset_changed(self, check: int):
         self._env.auto_reset = bool(check)
 
@@ -98,13 +123,20 @@ class MainWindow(QMainWindow):
 
     def _on_regen_n_runs_checked(self, check: int):
         check = bool(check)
-        self._panel.regen_n_runs_spinbox.setEnabled(check)
         self._env.regen_n_runs_enabled = check
+        self._panel.regen_n_runs_spinbox.setEnabled(check)
+
+    def _on_regen_n_runs_changed(self, value: int):
+        self._env.regen_n_runs = value
+        self._env.initial_regen_runs = value
 
     def _on_resize_n_regens_checked(self, check: int):
         check = bool(check)
-        self._panel.resize_n_regens_spinbox.setEnabled(check)
         self._env.resize_n_regens_enabled = check
+        self._panel.resize_n_regens_spinbox.setEnabled(check)
+
+    def _on_resize_n_regens_changed(self, value: int):
+        self._env.resize_n_regens = value
 
     def _on_regenerate(self):
         self._env.on_regenerate()
@@ -124,24 +156,16 @@ class MainWindow(QMainWindow):
     def _on_reset_vehicle(self):
         self._env.on_reset()
 
-    def _on_learning_mode_changed(self, check: int):
-        self._env.learning_mode = bool(check)
-
     def _on_dynamic_mutation_changed(self, check: int):
-        self._env.dynamic_mutation = bool(check)
+        check = bool(check)
+        self._env.dynamic_mutation = check
+        self._panel.mutation_chance_spinbox.setEnabled(not check)
 
     def _on_mutation_chance_changed(self, value: float):
         self._env.mutation_chance = value
 
     def _on_mutation_rate_changed(self, value: float):
         self._env.mutation_rate = value
-
-    def _on_success_regen_changed(self, value: int):
-        self._env.regen_n_runs = value
-        self._env.initial_regen_runs = value
-
-    def _on_success_resize_changed(self, value: int):
-        self._env.resize_n_regens = value
 
     def _on_proceed_nextgen(self):
         self._env.end_current_run(True, True)
@@ -166,12 +190,12 @@ class MainWindow(QMainWindow):
         self._panel.map_size_spinbox.setRange(3, 11)
         self._panel.regen_n_runs_checkbox.setChecked(self._env.regen_n_runs_enabled)
         self._panel.regen_n_runs_spinbox.setRange(0, 50)
-        self._panel.regen_n_runs_spinbox.setSingleStep(2)
+        self._panel.regen_n_runs_spinbox.setSingleStep(1)
         self._panel.regen_n_runs_spinbox.setValue(self._env.regen_n_runs)
         self._panel.regen_n_runs_spinbox.setEnabled(self._panel.regen_n_runs_checkbox.isChecked())
         self._panel.resize_n_regens_checkbox.setChecked(self._env.resize_n_regens_enabled)
         self._panel.resize_n_regens_spinbox.setRange(0, 50)
-        self._panel.resize_n_regens_spinbox.setSingleStep(2)
+        self._panel.resize_n_regens_spinbox.setSingleStep(1)
         self._panel.resize_n_regens_spinbox.setValue(self._env.resize_n_regens)
         self._panel.resize_n_regens_spinbox.setEnabled(self._panel.resize_n_regens_checkbox.isChecked())
         self._panel.map_size_spinbox.setValue(self._env.get_map_size())
@@ -189,7 +213,6 @@ class MainWindow(QMainWindow):
         self._panel.dangle_spinbox.setValue(enums.VEHICLE_DANGLE)
 
         # Agent
-        self._panel.learning_mode_checkbox.setChecked(self._env.learning_mode)
         self._panel.dynamic_mutation_checkbox.setChecked(self._env.dynamic_mutation)
         self._panel.mutation_chance_spinbox.setRange(0.01, 0.99)
         self._panel.mutation_chance_spinbox.setSingleStep(0.01)
@@ -203,12 +226,15 @@ class MainWindow(QMainWindow):
         self._panel.run_simulation_checkbox.stateChanged.connect(self._on_run_simulation)
         self._panel.tick_interval_spinbox.valueChanged.connect(self._on_update_interval_changed)
         self._panel.ticks_per_gen_spinbox.valueChanged.connect(self._on_ticks_until_nextgen_changed)
+        self._panel.learning_mode_checkbox.stateChanged.connect(self._on_learning_mode_changed)
         self._panel.auto_reset_checkbox.stateChanged.connect(self._on_auto_reset_changed)
 
         # Map
         self._panel.map_size_spinbox.valueChanged.connect(self._on_map_size_changed)
         self._panel.regen_n_runs_checkbox.stateChanged.connect(self._on_regen_n_runs_checked)
+        self._panel.regen_n_runs_spinbox.valueChanged.connect(self._on_regen_n_runs_changed)
         self._panel.resize_n_regens_checkbox.stateChanged.connect(self._on_resize_n_regens_checked)
+        self._panel.resize_n_regens_spinbox.valueChanged.connect(self._on_resize_n_regens_changed)
         self._panel.regenerate_btn.clicked.connect(self._on_regenerate)
 
         # Vehicle
@@ -219,12 +245,9 @@ class MainWindow(QMainWindow):
         self._panel.vehicle_reset_btn.clicked.connect(self._on_reset_vehicle)
 
         # Agent
-        self._panel.learning_mode_checkbox.stateChanged.connect(self._on_learning_mode_changed)
         self._panel.dynamic_mutation_checkbox.stateChanged.connect(self._on_dynamic_mutation_changed)
         self._panel.mutation_chance_spinbox.valueChanged.connect(self._on_mutation_chance_changed)
         self._panel.mutation_rate_spinbox.valueChanged.connect(self._on_mutation_rate_changed)
-        self._panel.regen_n_runs_spinbox.valueChanged.connect(self._on_success_regen_changed)
-        self._panel.resize_n_regens_spinbox.valueChanged.connect(self._on_success_resize_changed)
         self._panel.proceed_nextgen_btn.clicked.connect(self._on_proceed_nextgen)
 
     def _setup_layout(self):
@@ -238,3 +261,7 @@ class MainWindow(QMainWindow):
         self.quit_shortcut = QShortcut(QKeySequence("Ctrl+Q"), self)
         self.close_shortcut = QShortcut(QKeySequence("Ctrl+W"), self)
         self.close_shortcut.activated.connect(self.close)
+
+    def _block_panel_signals(self, widget_type: type, block: bool):
+        for widget in self._panel.findChildren(widget_type):
+            widget.blockSignals(block)
