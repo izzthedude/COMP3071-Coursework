@@ -101,16 +101,11 @@ class Environment:
     def end_current_run(self, reset: bool = False, proceed_nextgen: bool = False):
         # If success
         if any(data.is_finished for data in self.vehicle_datas()):
-            # Decrease the N for Regenerate on N Runs on successful runs
-            # Commented out for now since it can get confusing but still leaving it here
-            # if self.regen_n_runs != 0:
-            #     self.regen_n_runs = max(1, int(self.regen_n_runs * 0.8))
             pass
 
         else:
-            if self.regen_n_runs != 0:
-                self.regen_n_runs = self.initial_regen_runs
-                self.current_mapsize_run = 0
+            self.current_map_run = 0
+            self.current_mapsize_run = 0
 
         if self.regen_n_runs_enabled:
             # Update current map run
@@ -118,31 +113,30 @@ class Environment:
                 self.current_map_run += 1
 
             # Regenerate current map if current_map_run >= regen_n_runs
-            elif self.regen_n_runs > 0:
+            else:
                 self.current_map_run = 0
-
                 if self.resize_n_regens_enabled:
                     # Update current map size run
                     if self.current_mapsize_run + 1 < self.resize_n_regens:
                         self.current_mapsize_run += 1
 
                     # Resize map if current_mapsize_run >= resize_n_regens
-                    elif self.resize_n_regens > 0:
+                    else:
                         # Increment map size by one
                         new_size = self.get_map_size() + 1
                         if new_size > 11:
+                            self.auto_reset = False
                             new_size = 3
 
                         self.on_size_changed(new_size)
-                        self.current_map_run = 0
                         self.current_mapsize_run = 0
 
-                self.mapgen.regenerate()
 
         # Auto reset
         if self.auto_reset or reset:
             if self.learning_mode or proceed_nextgen:
                 self.on_generation_end()
+            self.on_regenerate()
             self.on_reset()
 
     def on_generation_end(self):
