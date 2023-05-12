@@ -93,8 +93,16 @@ class MainWindow(QMainWindow):
     def _on_auto_reset_changed(self, check: int):
         self._env.auto_reset = bool(check)
 
-    def _on_size_changed(self, value: int):
+    def _on_map_size_changed(self, value: int):
         self._env.on_size_changed(value)
+
+    def _on_regen_n_runs_checked(self, check: int):
+        check = bool(check)
+        self._panel.regen_n_runs_spinbox.setEnabled(check)
+
+    def _on_resize_n_regens_checked(self, check: int):
+        check = bool(check)
+        self._panel.resize_n_regens_spinbox.setEnabled(check)
 
     def _on_regenerate(self):
         self._env.on_regenerate()
@@ -114,7 +122,7 @@ class MainWindow(QMainWindow):
     def _on_reset_vehicle(self):
         self._env.on_reset()
 
-    def _on_learning_mode_changed(self, check: bool):
+    def _on_learning_mode_changed(self, check: int):
         self._env.learning_mode = bool(check)
 
     def _on_dynamic_mutation_changed(self, check: int):
@@ -154,6 +162,14 @@ class MainWindow(QMainWindow):
 
         # Map
         self._panel.map_size_spinbox.setRange(3, 11)
+        self._panel.regen_n_runs_spinbox.setRange(0, 50)
+        self._panel.regen_n_runs_spinbox.setSingleStep(2)
+        self._panel.regen_n_runs_spinbox.setValue(self._env.regen_n_runs)
+        self._panel.regen_n_runs_spinbox.setEnabled(self._panel.regen_n_runs_checkbox.isChecked())
+        self._panel.resize_n_regens_spinbox.setRange(0, 50)
+        self._panel.resize_n_regens_spinbox.setSingleStep(2)
+        self._panel.resize_n_regens_spinbox.setValue(self._env.resize_n_regens)
+        self._panel.resize_n_regens_spinbox.setEnabled(self._panel.resize_n_regens_checkbox.isChecked())
         self._panel.map_size_spinbox.setValue(self._env.get_map_size())
 
         # Vehicle
@@ -177,12 +193,6 @@ class MainWindow(QMainWindow):
         self._panel.mutation_rate_spinbox.setRange(0.01, 0.99)
         self._panel.mutation_rate_spinbox.setSingleStep(0.01)
         self._panel.mutation_rate_spinbox.setValue(self._env.mutation_rate)
-        self._panel.regen_n_runs_spinbox.setRange(0, 50)
-        self._panel.regen_n_runs_spinbox.setSingleStep(2)
-        self._panel.regen_n_runs_spinbox.setValue(self._env.regen_n_runs)
-        self._panel.resize_n_regens_spinbox.setRange(0, 50)
-        self._panel.resize_n_regens_spinbox.setSingleStep(2)
-        self._panel.resize_n_regens_spinbox.setValue(self._env.resize_n_regens)
 
     def _connect_panel_widgets(self):
         # General
@@ -192,8 +202,10 @@ class MainWindow(QMainWindow):
         self._panel.auto_reset_checkbox.stateChanged.connect(self._on_auto_reset_changed)
 
         # Map
-        self._panel.map_size_spinbox.valueChanged.connect(self._on_size_changed)
-        self._panel.regenerate_button.clicked.connect(self._on_regenerate)
+        self._panel.map_size_spinbox.valueChanged.connect(self._on_map_size_changed)
+        self._panel.regen_n_runs_checkbox.stateChanged.connect(self._on_regen_n_runs_checked)
+        self._panel.resize_n_regens_checkbox.stateChanged.connect(self._on_resize_n_regens_checked)
+        self._panel.regenerate_btn.clicked.connect(self._on_regenerate)
 
         # Vehicle
         self._panel.sensor_length_spinbox.valueChanged.connect(self._on_sensor_length_changed)
