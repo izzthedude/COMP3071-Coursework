@@ -13,9 +13,9 @@ class Environment:
         self.tick_interval = 20
         self.ticks_per_gen = 750
         self.auto_reset: bool = True
-        self.regen_n_runs_enabled: bool = True
+        self.regen_n_runs_enabled: bool = False
         self.regen_n_runs: int = 4
-        self.resize_n_regens_enabled: bool = True
+        self.resize_n_regens_enabled: bool = False
         self.resize_n_regens: int = 6
         self.learning_mode: bool = True
         self.dynamic_mutation: bool = True

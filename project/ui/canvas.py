@@ -71,9 +71,9 @@ class Canvas(QWidget):
         until_resize = self._env.resize_n_regens - self._env.current_mapsize_run
         general_info = [
             f"Running: {self.is_running} | {ticks_left}",
-            f"Generation: {self._env.generation} | {self._env.first_successful_generation} | {until_regen} | {until_resize}",
+            f"Generation: {self._env.generation} | {until_regen} | {until_resize}",
         ]
-        self._draw_text_section(775, 0, "", general_info, p)
+        self._draw_text_section(850, 0, "", general_info, p)
 
     def _draw_tile(self, tile: MapTile, painter: QPainter):
         for border in tile.borders:
