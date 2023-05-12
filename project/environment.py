@@ -164,7 +164,7 @@ class Environment:
 
         # Adjust chance of mutation if dynamic mutation is True
         if self.dynamic_mutation:
-            num = int(len(fitted_datas) * self.carryover_percentage)
+            num = math.ceil(len(fitted_datas) * self.carryover_percentage)
             top = fitted_datas[:num]
             avg_fitness = utils.average([GA.fitness(data, all_ticks) for data in top])
             adjusted = math.tanh(1 / avg_fitness) if avg_fitness else self.mutation_chance_domain[1]
@@ -211,6 +211,7 @@ class Environment:
             # Replace first vehicle's agent with the new loaded agent
             vehicle = self.get_vehicles()[0]
             data = self.vehicle_data(vehicle)
+            data.is_custom_agent = True
             self.vehicles[vehicle] = (new_agent, data)
 
     def set_learning_mode(self, enabled: bool):

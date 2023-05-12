@@ -191,6 +191,7 @@ class VehicleData:
     displacement_goal: float = 0.0
     is_finished: bool = False
     ticks_taken: int = 0
+    is_custom_agent: bool = False
 
     def reset(self):
         self.collision = None

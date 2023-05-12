@@ -51,12 +51,17 @@ class Canvas(QWidget):
 
         # Draw vehicles
         for vehicle, (_, data) in self._env.vehicles.items():
-            if vehicle is not self._env.current_best_vehicle:
+            if vehicle is not self._env.current_best_vehicle and not data.is_custom_agent:
                 self._draw_vehicle(vehicle, data, "blue", p)
 
-        # Always draw the best vehicle on top
+        # Draw the best fit vehicle above the others
         if best := self._env.current_best_vehicle:
             self._draw_vehicle(best, self._env.vehicle_data(best), "green", p)
+
+        # Draw the vehicle with a manually loaded agent on top
+        for vehicle in filter(lambda vehicle: self._env.vehicle_data(vehicle).is_custom_agent,
+                              self._env.get_vehicles()):
+            self._draw_vehicle(vehicle, self._env.vehicle_data(vehicle), "lime", p)
 
         # Draw controls info
         controls_info = [
