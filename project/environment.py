@@ -1,3 +1,4 @@
+import csv
 import json
 import math
 import os
@@ -127,7 +128,7 @@ class Environment:
                         if new_size > 11:  # This also signifies the completion of a learning process or experiment
                             new_size = 3
 
-                            # TODO (low): Somehow stop the simulation once it's finished its learning process
+                            # TODO (low): Somehow stop the simulation once it loops back
                             if self.learning_mode:
                                 self.save_best_agent(Environment.AGENTS_DIR)
                                 self.learning_mode = False
@@ -263,11 +264,11 @@ class Environment:
         for size in sizes:
             key = f"map{size}"
             maps = tuple(filter(lambda report: report["map_size"] == size, self.run_reports))
-            avg_collisions = utils.average([int(report["collided"]) for report in maps])
+            collisions = sum([int(report["collided"]) for report in maps])
             avg_ticks = utils.average([report["ticks_taken"] for report in maps])
 
             self.experiment_results[key]["runs"] = len(maps)
-            self.experiment_results[key]["average_collisions"] = avg_collisions
+            self.experiment_results[key]["collisions"] = collisions
             self.experiment_results[key]["average_ticks"] = avg_ticks
 
     def save_experiment(self, directory: str):
@@ -284,7 +285,7 @@ class Environment:
         with open(exp_results_path, "w") as file:
             json.dump(self.experiment_results, file)
 
-        return experiment_dir
+        self._convert_experiment_to_csv(self.experiment_results, experiment_dir)
 
     def set_learning_mode(self, enabled: bool):
         self.learning_mode = enabled
@@ -376,3 +377,21 @@ class Environment:
                     avg_agent.weights[layer][row][weight] = avg_weights
 
         return avg_agent
+
+    def _convert_experiment_to_csv(self, experiment: dict, directory: str):
+        map_keys = tuple(filter(lambda key: key.startswith("map"), experiment.keys()))
+        map_sizes = [int(key[3:]) for key in map_keys]
+        collisions = [experiment[key]["collisions"] for key in map_keys]
+        avg_ticks = [experiment[key]["average_ticks"] for key in map_keys]
+        collisions_csv = [("Map Sizes", "Collisions")] + list(zip(map_sizes, collisions))
+        avg_ticks_csv = [("Map Sizes", "Average Ticks")] + list(zip(map_sizes, avg_ticks))
+
+        collisions_path = os.path.join(directory, "collisions.csv")
+        avg_ticks_path = os.path.join(directory, "avg_ticks.csv")
+        self._write_csv(collisions_path, collisions_csv)
+        self._write_csv(avg_ticks_path, avg_ticks_csv)
+
+    def _write_csv(self, path: str, data: list):
+        with open(path, "w") as file:
+            writer = csv.writer(file, delimiter=" ")
+            writer.writerows(data)
