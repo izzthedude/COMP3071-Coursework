@@ -33,7 +33,7 @@ class MainWindow(QMainWindow):
         self._connect_panel_widgets()
         self._env_runner.timeout.connect(self._tick)
         self._ui_updater.timeout.connect(self._update_ui)
-        self._ui_updater.start(1000 / 30)  # Canvas updates per second, adjust the denominator to the desired FPS.
+        self._ui_updater.start(1000 / 60)  # Canvas updates per second, adjust the denominator to the desired FPS.
 
         self.addWidget(self._panel)
         self.addWidget(self._canvas)
@@ -42,10 +42,7 @@ class MainWindow(QMainWindow):
         self._panel.learning_mode_checkbox.setChecked(self._env.learning_mode)
 
     def _tick(self):
-        if not self._env.current_ticks >= self._env.ticks_per_gen:
-            self._env.tick()
-        else:
-            self._env.end_current_run()
+        self._env.tick()
 
         # Update the tick interval every tick so that it reflects in real time
         self._env_runner.stop()
@@ -72,7 +69,7 @@ class MainWindow(QMainWindow):
         self._block_panel_signals(QSpinBox, False)
 
         self._panel.learning_mode_checkbox.setChecked(self._env.learning_mode)
-        
+
         self._canvas.update()
 
     def _update_runner(self, condition: bool):
@@ -125,7 +122,7 @@ class MainWindow(QMainWindow):
         self._env.auto_reset = bool(check)
 
     def _on_map_size_changed(self, value: int):
-        self._env.on_size_changed(value)
+        self._env.change_map_size(value)
 
     def _on_regen_n_runs_checked(self, check: int):
         check = bool(check)
@@ -144,7 +141,7 @@ class MainWindow(QMainWindow):
         self._env.resize_n_regens = value
 
     def _on_regenerate(self):
-        self._env.on_regenerate()
+        self._env.regenerate_map()
 
     def _on_sensor_length_changed(self, value: int):
         enums.SENSOR_LENGTH = value
@@ -159,7 +156,7 @@ class MainWindow(QMainWindow):
         enums.VEHICLE_DANGLE = value
 
     def _on_reset_vehicle(self):
-        self._env.on_reset()
+        self._env.reset_vehicles()
 
     def _on_dynamic_mutation_changed(self, check: int):
         check = bool(check)
@@ -176,7 +173,7 @@ class MainWindow(QMainWindow):
         self._env.end_current_run(True, True)
 
     def _on_save_best_model(self):
-        self._env.on_save_best_agent(AGENTS_DIR)
+        self._env.save_best_agent(AGENTS_DIR)
 
     def _on_load_model(self):
         dialog = QFileDialog(self, "Select Python pickle file", AGENTS_DIR, "Python Pickles (*.pickle)")
@@ -184,7 +181,7 @@ class MainWindow(QMainWindow):
 
         if dialog.exec():
             file_path = dialog.selectedFiles()[0]
-            self._env.on_load_agent(file_path)
+            self._env.load_agent(file_path)
 
     def _setup_panel_values(self):
         # General

@@ -13,8 +13,8 @@ from project.models import Vehicle, VehicleData
 class Environment:
     def __init__(self):
         # Environment parameters
-        self.tick_interval = 20
-        self.ticks_per_gen = 750
+        self.tick_interval: int = 20
+        self.ticks_per_gen: int = 750
         self.auto_reset: bool = True
         self.regen_n_runs_enabled: bool = False
         self.regen_n_runs: int = 4
@@ -22,24 +22,21 @@ class Environment:
         self.resize_n_regens: int = 6
         self.learning_mode: bool = True
         self.dynamic_mutation: bool = True
-        self.mutation_chance_domain = (0.01, 0.40)  # Domains here are mainly for dynamic mutation use. Not UI.
-        self.mutation_rate_domain = (0.01, 0.20)
+        self.mutation_chance_domain: tuple[float, float] = (0.01, 0.40)  # Domains here are mainly for dynamic
+        self.mutation_rate_domain: tuple[float, float] = (0.01, 0.20)    # mutation use. Not UI.
         self.mutation_chance: float = self.mutation_chance_domain[1]
         self.mutation_rate: float = 0.05
+        self.carryover_percentage: float = 0.20
 
-        self.current_ticks = 0
+        self.current_ticks: int = 0
         self.current_map_run: int = 0
         self.current_mapsize_run: int = 0
-        self.initial_regen_runs = self.regen_n_runs
-        self.carryover_percentage = 0.20
         self.current_best_vehicle: Vehicle | None = None
 
         self.generation: int = 0
-        self.first_successful_generation: int | None = None
-        self.num_successful_agents: int = 0
 
         # Map
-        map_size = 3
+        map_size: int = 3
         self.mapgen = MapGenerator(enums.CANVAS_SIZE // map_size, map_size)
 
         # Initialise vehicles
@@ -76,10 +73,7 @@ class Environment:
                 if data.is_finished:
                     data.ticks_taken = self.current_ticks
 
-                    self.num_successful_agents += 1
-                    if not self.first_successful_generation:
-                        self.first_successful_generation = self.generation
-
+                # Use agent to predict vehicle movement
                 inputs = [distance for (_, _), distance in data.intersections] + [vehicle.speed()]
                 dtheta, dspeed = agent.predict(inputs)
                 vehicle.theta += dtheta
@@ -99,8 +93,6 @@ class Environment:
         if done:
             self.end_current_run()
 
-        return done
-
     def end_current_run(self, reset: bool = False, proceed_nextgen: bool = False):
         if self.regen_n_runs_enabled:
             # Update current map run if haven't reached limit
@@ -109,6 +101,8 @@ class Environment:
 
             # Regenerate current map if current_map_run >= regen_n_runs
             else:
+                self.current_map_run = 0
+
                 if self.resize_n_regens_enabled:
                     # Update current map size run if haven't reached limit
                     if self.current_mapsize_run + 1 < self.resize_n_regens:
@@ -116,17 +110,16 @@ class Environment:
 
                     # Resize map once reached limit
                     else:
+                        self.current_mapsize_run = 0
+
                         # Increment map size by one
                         new_size = self.get_map_size() + 1
                         if new_size > 11:
                             # TODO (low): Somehow stop the simulation once it's finished its learning process
                             self.learning_mode = False
                             new_size = 3
+                        self.change_map_size(new_size)
 
-                        self.on_size_changed(new_size)
-                        self.current_mapsize_run = 0
-
-                self.current_map_run = 0
                 self.mapgen.regenerate()
 
         # If success
@@ -139,10 +132,10 @@ class Environment:
         # Auto reset
         if self.auto_reset or reset:
             if self.learning_mode or proceed_nextgen:
-                self.on_generation_end()
-            self.on_reset()
+                self.proceed_next_generation()
+            self.reset_vehicles()
 
-    def on_generation_end(self):
+    def proceed_next_generation(self):
         # Get next generation
         population = [agent.to_genome() for agent in self.vehicle_agents()]
         datas = self.vehicle_datas()
@@ -169,9 +162,8 @@ class Environment:
 
         self.generation += 1
 
-    def on_reset(self):
+    def reset_vehicles(self):
         self.current_ticks = 0
-        self.num_successful_agents = 0
 
         for vehicle, (_, data) in self.vehicles.items():
             vehicle.x, vehicle.y = self._calculate_vehicle_start()
@@ -179,19 +171,19 @@ class Environment:
             data.reset()
             self._calculate_vehicle_data(vehicle)
 
-    def on_regenerate(self):
+    def regenerate_map(self):
         self.current_mapsize_run = 0
         self.current_map_run = 0
         self.mapgen.regenerate()
-        self.on_reset()
+        self.reset_vehicles()
 
-    def on_size_changed(self, value: int):
+    def change_map_size(self, value: int):
         change = value - self.get_map_size()
         size = int(utils.change_cutoff(self.get_map_size(), change, 3, 11))
         self.mapgen.set_map_size(size)
         self.mapgen.set_tile_size(enums.CANVAS_SIZE / size)
 
-    def on_save_best_agent(self, directory: str):
+    def save_best_agent(self, directory: str):
         if not os.path.exists(directory):
             os.makedirs(directory, exist_ok=True)
 
@@ -201,7 +193,7 @@ class Environment:
             agent = self.vehicle_agent(self.current_best_vehicle)
             pickle.dump(agent, file)
 
-    def on_load_agent(self, path: str):
+    def load_agent(self, path: str):
         with open(path, "rb") as file:
             new_agent = pickle.load(file)
 
