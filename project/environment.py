@@ -11,6 +11,8 @@ from project.models import Vehicle, VehicleData
 
 
 class Environment:
+    AGENTS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "agents")
+
     def __init__(self):
         # Environment parameters
         self.tick_interval: int = 20
@@ -116,7 +118,9 @@ class Environment:
                         new_size = self.get_map_size() + 1
                         if new_size > 11:
                             # TODO (low): Somehow stop the simulation once it's finished its learning process
-                            self.learning_mode = False
+                            if self.learning_mode:
+                                self.save_best_agent(Environment.AGENTS_DIR)
+                                self.learning_mode = False
                             new_size = 3
                         self.change_map_size(new_size)
 
@@ -125,7 +129,7 @@ class Environment:
         # If success
         if any(data.is_finished for data in self.vehicle_datas()):
             pass
-        else:
+        elif self.learning_mode:
             self.current_map_run = 0
             self.current_mapsize_run = 0
 
@@ -187,11 +191,21 @@ class Environment:
         if not os.path.exists(directory):
             os.makedirs(directory, exist_ok=True)
 
-        file_name = datetime.now().strftime("agent_%Y%m%d_%H%M%S.pickle")
-        file_path = os.path.join(directory, file_name)
-        with open(file_path, "wb") as file:
-            agent = self.vehicle_agent(self.current_best_vehicle)
-            pickle.dump(agent, file)
+        current = datetime.now().strftime("%Y%m%d_%H%M%S")
+        file_names = [
+            f"agent_{current}.pickle",  # Best fit agent only
+            f"agent_{current}_avg.pickle"  # Average of some best fit agents
+        ]
+
+        file_paths = [os.path.join(directory, file_name) for file_name in file_names]
+        for file_path in file_paths:
+            with open(file_path, "wb") as file:
+                if "_avg" in file_path:
+                    agent = self._average_best_weights()
+                else:
+                    agent = self.vehicle_agent(self.current_best_vehicle)
+
+                pickle.dump(agent, file)
 
     def load_agent(self, path: str):
         with open(path, "rb") as file:
@@ -204,13 +218,17 @@ class Environment:
             self.vehicles[vehicle] = (new_agent, data)
 
     def set_learning_mode(self, enabled: bool):
-        self.auto_reset = enabled
         self.learning_mode = enabled
-        self.regen_n_runs_enabled = enabled
-        self.resize_n_regens_enabled = enabled
-        self.dynamic_mutation = enabled
-        self.regen_n_runs = 3
-        self.resize_n_regens = 12
+        if enabled:
+            self.auto_reset = enabled
+            self.regen_n_runs_enabled = enabled
+            self.resize_n_regens_enabled = enabled
+            self.dynamic_mutation = enabled
+            self.regen_n_runs = 3
+            self.resize_n_regens = 12
+        else:
+            self.regen_n_runs = 1
+            self.resize_n_regens = 10
 
     def get_map_size(self):
         return self.mapgen.map_size()
@@ -271,3 +289,21 @@ class Environment:
         data.intersections, data.collision = self._find_sensor_intersections(vehicle)
         data.displacement_start = utils.distance_2p(self._calculate_vehicle_start(), vehicle.pos())
         data.displacement_goal = utils.distance_2p(self.mapgen.tiles()[-1].center(), vehicle.pos())
+
+    def _average_best_weights(self) -> NavigatorAgent:
+        all_ticks = [data.ticks_taken for data in self.vehicle_datas()]
+        best_fits: list[tuple[Vehicle, float]] = [(vehicle, GA.fitness(data, all_ticks))
+                                                  for vehicle, (_, data) in self.vehicles.items()]
+        best_fits.sort(key=lambda pair: pair[1], reverse=True)
+
+        num = math.ceil(len(self.vehicles) * self.carryover_percentage)
+        best_agents: list[NavigatorAgent] = [self.vehicle_agent(vehicle) for vehicle, _ in best_fits][:num]
+
+        avg_agent: NavigatorAgent = NavigatorAgent()
+        for layer in range(len(avg_agent.weights)):
+            for row in range(len(avg_agent.weights[layer])):
+                for weight in range(len(avg_agent.weights[layer][row])):
+                    avg_weights = utils.average([agent.weights[layer][row][weight] for agent in best_agents])
+                    avg_agent.weights[layer][row][weight] = avg_weights
+
+        return avg_agent

@@ -1,5 +1,3 @@
-import os
-
 from PySide6.QtCore import *
 from PySide6.QtGui import *
 from PySide6.QtWidgets import *
@@ -8,8 +6,6 @@ from project import enums
 from project.environment import Environment
 from project.ui.canvas import Canvas
 from project.ui.panel import Panel
-
-AGENTS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "agents")
 
 
 class MainWindow(QMainWindow):
@@ -107,10 +103,7 @@ class MainWindow(QMainWindow):
 
     def _on_learning_mode_changed(self, check: int):
         check = bool(check)
-        if check:
-            self._env.set_learning_mode(check)
-
-        self._env.learning_mode = check
+        self._env.set_learning_mode(check)
         self._panel.auto_reset_checkbox.setDisabled(check)
         self._panel.regen_n_runs_checkbox.setDisabled(check)
         self._panel.regen_n_runs_spinbox.setDisabled(check)
@@ -173,10 +166,10 @@ class MainWindow(QMainWindow):
         self._env.end_current_run(True, True)
 
     def _on_save_best_model(self):
-        self._env.save_best_agent(AGENTS_DIR)
+        self._env.save_best_agent(self._env.AGENTS_DIR)
 
     def _on_load_model(self):
-        dialog = QFileDialog(self, "Select Python pickle file", AGENTS_DIR, "Python Pickles (*.pickle)")
+        dialog = QFileDialog(self, "Select Python pickle file", self._env.AGENTS_DIR, "Python Pickles (*.pickle)")
         dialog.setAcceptMode(QFileDialog.AcceptMode.AcceptOpen)
 
         if dialog.exec():
