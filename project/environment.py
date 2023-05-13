@@ -1,3 +1,4 @@
+import json
 import math
 import os
 import pickle
@@ -11,7 +12,9 @@ from project.models import Vehicle, VehicleData
 
 
 class Environment:
-    AGENTS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "agents")
+    PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
+    AGENTS_DIR = os.path.join(PROJECT_ROOT, "agents")
+    EXPERIMENTS_DIR = os.path.join(PROJECT_ROOT, "experiments")
 
     def __init__(self):
         # Environment parameters
@@ -25,7 +28,7 @@ class Environment:
         self.learning_mode: bool = True
         self.dynamic_mutation: bool = True
         self.mutation_chance_domain: tuple[float, float] = (0.01, 0.40)  # Domains here are mainly for dynamic
-        self.mutation_rate_domain: tuple[float, float] = (0.01, 0.20)    # mutation use. Not UI.
+        self.mutation_rate_domain: tuple[float, float] = (0.01, 0.20)  # mutation use. Not UI.
         self.mutation_chance: float = self.mutation_chance_domain[1]
         self.mutation_rate: float = 0.05
         self.carryover_percentage: float = 0.20
@@ -34,8 +37,11 @@ class Environment:
         self.current_map_run: int = 0
         self.current_mapsize_run: int = 0
         self.current_best_vehicle: Vehicle | None = None
-
         self.generation: int = 0
+
+        self.loaded_agent: str = ""
+        self.run_reports: list[dict] = []
+        self.experiment_results: dict = {}
 
         # Map
         map_size: int = 3
@@ -93,6 +99,8 @@ class Environment:
         all_collided_or_finished = all(data.collision or data.is_finished for data in self.vehicle_datas())
         done = ticks_finished or all_collided_or_finished
         if done:
+            if not self.learning_mode:
+                self.run_reports.append(self.report_current_run())
             self.end_current_run()
 
     def end_current_run(self, reset: bool = False, proceed_nextgen: bool = False):
@@ -116,12 +124,19 @@ class Environment:
 
                         # Increment map size by one
                         new_size = self.get_map_size() + 1
-                        if new_size > 11:
+                        if new_size > 11:  # This also signifies the completion of a learning process or experiment
+                            new_size = 3
+
                             # TODO (low): Somehow stop the simulation once it's finished its learning process
                             if self.learning_mode:
                                 self.save_best_agent(Environment.AGENTS_DIR)
                                 self.learning_mode = False
-                            new_size = 3
+                            else:
+                                self.compile_reports()
+                                self.save_experiment(self.EXPERIMENTS_DIR)
+                                self.run_reports.clear()
+                                self.experiment_results.clear()
+
                         self.change_map_size(new_size)
 
                 self.mapgen.regenerate()
@@ -216,6 +231,60 @@ class Environment:
             data = self.vehicle_data(vehicle)
             data.is_custom_agent = True
             self.vehicles[vehicle] = (new_agent, data)
+
+        self.loaded_agent = path
+
+    def report_current_run(self) -> dict:
+        vehicle = self.get_vehicles()[0]
+        data = self.vehicle_data(vehicle)
+
+        collided = bool(data.collision)
+        return {
+            "map_size": self.get_map_size(),
+            "collided": collided,
+            "ticks_taken": data.ticks_taken
+        }
+
+    def compile_reports(self):
+        self.experiment_results = {
+            "agent": self.loaded_agent,
+            "total_collisions": 0,
+            "total_runs": len(self.run_reports),
+            "runs_per_size": self.resize_n_regens
+        }
+        sizes = []
+
+        for report in self.run_reports:
+            self.experiment_results["total_collisions"] += int(report["collided"])
+            size = report['map_size']
+            sizes.append(size)
+            self.experiment_results[f"map{size}"] = {}
+
+        for size in sizes:
+            key = f"map{size}"
+            maps = tuple(filter(lambda report: report["map_size"] == size, self.run_reports))
+            avg_collisions = utils.average([int(report["collided"]) for report in maps])
+            avg_ticks = utils.average([report["ticks_taken"] for report in maps])
+
+            self.experiment_results[key]["runs"] = len(maps)
+            self.experiment_results[key]["average_collisions"] = avg_collisions
+            self.experiment_results[key]["average_ticks"] = avg_ticks
+
+    def save_experiment(self, directory: str):
+        current = datetime.now().strftime("%Y%m%d_%H%M%S")
+        experiment_dir = os.path.join(directory, f"exp_{current}")
+        if not os.path.exists(experiment_dir):
+            os.makedirs(experiment_dir, exist_ok=True)
+
+        run_reports_path = os.path.join(experiment_dir, "run_reports.json")
+        with open(run_reports_path, "w") as file:
+            json.dump(self.run_reports, file)
+
+        exp_results_path = os.path.join(experiment_dir, "experiment_results.json")
+        with open(exp_results_path, "w") as file:
+            json.dump(self.experiment_results, file)
+
+        return experiment_dir
 
     def set_learning_mode(self, enabled: bool):
         self.learning_mode = enabled

@@ -290,3 +290,5 @@ pyrightconfig.json
 
 agents/*
 !agents/sample.pickle
+
+experiments
