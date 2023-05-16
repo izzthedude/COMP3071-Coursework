@@ -71,7 +71,7 @@ class Canvas(QWidget):
         self._draw_text_section(0, 0, "Controls", controls_info, p)
 
         # Draw general info
-        ticks_left = self._env.ticks_per_gen - self._env.current_ticks
+        ticks_left = self._env.ticks_per_run - self._env.current_ticks
         until_regen = self._env.regen_n_runs - self._env.current_map_run
         until_resize = self._env.resize_n_regens - self._env.current_mapsize_run
         general_info = [

@@ -99,7 +99,7 @@ class MainWindow(QMainWindow):
         self._env.tick_interval = value
 
     def _on_ticks_until_nextgen_changed(self, value: int):
-        self._env.ticks_per_gen = value
+        self._env.ticks_per_run = value
 
     def _on_learning_mode_changed(self, check: int):
         check = bool(check)
@@ -180,7 +180,7 @@ class MainWindow(QMainWindow):
         self.panel.tick_interval_spinbox.setValue(self._env.tick_interval)
         self.panel.ticks_per_gen_spinbox.setRange(100, 2000)
         self.panel.ticks_per_gen_spinbox.setSingleStep(50)
-        self.panel.ticks_per_gen_spinbox.setValue(self._env.ticks_per_gen)
+        self.panel.ticks_per_gen_spinbox.setValue(self._env.ticks_per_run)
         self.panel.auto_reset_checkbox.setChecked(self._env.auto_reset)
 
         # Map

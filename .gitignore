@@ -292,3 +292,5 @@ agents/*
 !agents/sample.pickle
 
 experiments
+!experiments/sample*
+!experiments/compile.py

@@ -20,13 +20,13 @@ class Environment:
     def __init__(self):
         # Environment parameters
         self.tick_interval: int = 20
-        self.ticks_per_gen: int = 750
+        self.ticks_per_run: int = 750
         self.learning_mode: bool = True
         self.auto_reset: bool = True
-        self.regen_n_runs_enabled: bool = True
         self.regen_n_runs: int = 4
-        self.resize_n_regens_enabled: bool = True
+        self.regen_n_runs_enabled: bool = True
         self.resize_n_regens: int = 6
+        self.resize_n_regens_enabled: bool = True
         self.dynamic_mutation: bool = True
         self.mutation_chance_domain: tuple[float, float] = (0.01, 0.40)  # Domains here are mainly for dynamic
         self.mutation_rate_domain: tuple[float, float] = (0.01, 0.20)  # mutation use. Not UI.
@@ -96,7 +96,7 @@ class Environment:
         self.current_best_vehicle = fitness[0][0]
 
         # Check if current run is done
-        ticks_finished = self.current_ticks >= self.ticks_per_gen
+        ticks_finished = self.current_ticks >= self.ticks_per_run
         all_collided_or_finished = all(data.collision or data.is_finished for data in self.vehicle_datas())
         done = ticks_finished or all_collided_or_finished
         if done:
@@ -264,7 +264,7 @@ class Environment:
             key = f"map{size}"
             maps = tuple(filter(lambda report: report["map_size"] == size, self.run_reports))
             collisions = sum([int(report["collided"]) for report in maps])
-            avg_ticks = utils.average([report["ticks_taken"] for report in maps])
+            avg_ticks = utils.average([report["ticks_taken"] for report in maps if report["ticks_taken"]])
 
             self.experiment_results[key]["runs"] = len(maps)
             self.experiment_results[key]["collisions"] = collisions
