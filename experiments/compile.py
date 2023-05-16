@@ -1,14 +1,15 @@
 """
-Helper script for compiling results from multiple experiments. At this point, it only creates
-average collisions and average of average ticks per map of all experiments. Four new files will be created:
+Helper script for compiling results from multiple experiments. It only creates average collisions and
+average of average ticks per map of all experiments. This is with the assumption that 2 experiments were
+run in parallel, with the first one testing the BEST agent, and the second one testing the AVERAGE agent.
+Four new files will be created:
 
 - averages_avg_avg_ticks.csv = The average of average ticks per map of all experiments for the AVERAGE agent
 - average_avg_collisions.csv = The average collisions per map of all experiments for the AVERAGE agent
 - bests_avg_avg_ticks.csv = The average of average ticks per map of all experiments for the BEST agent
 - bests_avg_collisions.csv = The average collisions per map of all experiments for the BEST agent
 
-IMPORTANT NOTE: This is with the assumption that 2 experiments were run in parallel, with the first one
-testing the BEST agent, and the second one testing the AVERAGE agent.
+IMPORTANT NOTE: This is not meant to be run normally. This is just a helper script I made while running experiments.
 """
 
 import csv
