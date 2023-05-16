@@ -289,7 +289,7 @@ pyrightconfig.json
 # End of https://www.toptal.com/developers/gitignore/api/python,pycharm
 
 agents/*
-!agents/sample.pickle
+!agents/sample*.pickle
 
 experiments
 !experiments/sample*

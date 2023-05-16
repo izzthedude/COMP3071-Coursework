@@ -1,1 +1,51 @@
-{"agent": "/home/izz/Projects/Uni Stuff/DIA CW/agents/agent_20230516_131641.pickle", "total_collisions": 23, "total_runs": 450, "runs_per_size": 50, "map3": {"runs": 50, "collisions": 0, "average_ticks": 147.64}, "map4": {"runs": 50, "collisions": 0, "average_ticks": 148.36}, "map5": {"runs": 50, "collisions": 0, "average_ticks": 164.18}, "map6": {"runs": 50, "collisions": 0, "average_ticks": 177.7}, "map7": {"runs": 50, "collisions": 0, "average_ticks": 188.86}, "map8": {"runs": 50, "collisions": 0, "average_ticks": 186.0}, "map9": {"runs": 50, "collisions": 2, "average_ticks": 216.9375}, "map10": {"runs": 50, "collisions": 3, "average_ticks": 209.70212765957447}, "map11": {"runs": 50, "collisions": 18, "average_ticks": 206.96875}}
+{
+  "agent": "/home/izz/Projects/Uni Stuff/DIA CW/agents/agent_20230516_131641.pickle",
+  "total_collisions": 23,
+  "total_runs": 450,
+  "runs_per_size": 50,
+  "map3": {
+    "runs": 50,
+    "collisions": 0,
+    "average_ticks": 147.64
+  },
+  "map4": {
+    "runs": 50,
+    "collisions": 0,
+    "average_ticks": 148.36
+  },
+  "map5": {
+    "runs": 50,
+    "collisions": 0,
+    "average_ticks": 164.18
+  },
+  "map6": {
+    "runs": 50,
+    "collisions": 0,
+    "average_ticks": 177.7
+  },
+  "map7": {
+    "runs": 50,
+    "collisions": 0,
+    "average_ticks": 188.86
+  },
+  "map8": {
+    "runs": 50,
+    "collisions": 0,
+    "average_ticks": 186.0
+  },
+  "map9": {
+    "runs": 50,
+    "collisions": 2,
+    "average_ticks": 216.9375
+  },
+  "map10": {
+    "runs": 50,
+    "collisions": 3,
+    "average_ticks": 209.70212765957447
+  },
+  "map11": {
+    "runs": 50,
+    "collisions": 18,
+    "average_ticks": 206.96875
+  }
+}
